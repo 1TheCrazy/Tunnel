@@ -1,7 +1,9 @@
 [package]
-name = "core"
+name = "tunnel_core"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-serde = "1"
+dirs.workspace = true
+serde.workspace = true
+serde_json.workspace = true
