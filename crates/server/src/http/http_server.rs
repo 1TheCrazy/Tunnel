@@ -1,4 +1,4 @@
-use tunnel_core::structs::server::Server;
+use tunnel_core::{structs::server::Server, state::save_manager, structs::state::ServerConfig};
 use axum::{
     Router,
 };
@@ -8,20 +8,20 @@ use crate::http::state::AppState;
 use crate::http::routes;
 
 pub trait HttpServer {
-    fn new() -> Server;
-    fn new_with_port(port: &str) -> Server;
+    fn from_config() -> Server;
     async fn start(&self);
+    fn cleanup(&self) -> Result<(), Box<dyn std::error::Error>>;
+
 }
 
 impl HttpServer for Server {
-    fn new() -> Server {
-        Server::new_with_port("8000")
-    }
+    fn from_config() -> Server {
+        let config = save_manager::read_config_or_default::<ServerConfig>(&save_manager::SERVER_CONFIG_PATH());
 
-    fn new_with_port(port: &str) -> Server {
         Server {
-            port: port.to_owned(),
-            nodes: vec![],
+            port: config.port,
+            nodes: config.nodes,
+            password: config.password
         }
     }
 
@@ -40,8 +40,27 @@ impl HttpServer for Server {
             .await
             .expect("Failed to bind to port");
 
+        let shutdown = async { 
+            tokio::signal::ctrl_c().
+                await
+               .expect("Unable to start server, since the shutdown hook cannot be installed");
+        };
+
         axum::serve(listener, app)
+            .with_graceful_shutdown(shutdown)
             .await
             .expect("Failed to serve");
+    }
+
+    fn cleanup(&self) -> Result<(), Box<dyn std::error::Error>>{
+        let config_to_save = ServerConfig {
+            password: self.password.to_owned(),
+            port: self.port.to_owned(),
+            nodes: self.nodes.to_owned()
+        };
+        
+        save_manager::write_config(&config_to_save, &save_manager::SERVER_CONFIG_PATH())?;
+
+        Ok(())
     }
 }

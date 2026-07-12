@@ -1,4 +1,6 @@
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ServerNode {
     pub ip: String,
     pub port: String, 
@@ -18,5 +20,6 @@ impl Default for ServerNode {
 #[derive(Debug, Default)]
 pub struct Server {
     pub nodes: Vec<ServerNode>,
-    pub port: String
+    pub port: String,
+    pub password: String
 }
