@@ -2,8 +2,8 @@ use tunnel_core::{structs::server::Server, state::save_manager, structs::state::
 use axum::{
     Router,
 };
-use std::sync::Arc;
-use tokio::{net::TcpListener, sync::RwLock};
+use std::sync::{Arc, RwLock};
+use tokio::{net::TcpListener};
 use crate::http::state::AppState;
 use crate::http::routes;
 
@@ -27,7 +27,8 @@ impl HttpServer for Server {
 
     async fn start(&self) {
         let state: AppState = AppState {
-            nodes: Arc::new(RwLock::new(self.nodes.clone()))
+            nodes: Arc::new(RwLock::new(self.nodes.clone())),
+            password: self.password.clone()
         };
 
         let app = 
