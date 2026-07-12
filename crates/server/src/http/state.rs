@@ -1,10 +1,9 @@
-use std::sync::Arc;
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
+use tunnel_core::structs::server::Server;
 
-use tunnel_core::structs::server::ServerNode;
+pub type SharedServer = Arc<RwLock<Server>>;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub nodes: Arc<RwLock<Vec<ServerNode>>>,
-    pub password: String
+    pub server: SharedServer
 }

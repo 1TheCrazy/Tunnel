@@ -6,29 +6,28 @@ use std::sync::{Arc, RwLock};
 use tokio::{net::TcpListener};
 use crate::http::state::AppState;
 use crate::http::routes;
+use crate::SharedServer;
 
 pub trait HttpServer {
-    fn from_config() -> Server;
+    fn from_config() -> SharedServer;
     async fn start(&self);
     fn cleanup(&self) -> Result<(), Box<dyn std::error::Error>>;
-
 }
 
-impl HttpServer for Server {
-    fn from_config() -> Server {
+impl HttpServer for SharedServer {
+    fn from_config() -> SharedServer {
         let config = save_manager::read_config_or_default::<ServerConfig>(&save_manager::SERVER_CONFIG_PATH());
 
-        Server {
+        return Arc::new(RwLock::new(Server {
             port: config.port,
             nodes: config.nodes,
-            password: config.password
-        }
+            password: config.password,
+        }))
     }
 
     async fn start(&self) {
         let state: AppState = AppState {
-            nodes: Arc::new(RwLock::new(self.nodes.clone())),
-            password: self.password.clone()
+            server: Arc::clone(&self)
         };
 
         let app = 
@@ -36,8 +35,14 @@ impl HttpServer for Server {
             .merge(routes::router())
             .with_state(state);
 
+        let port = {
+            let server = self.read().expect("Server sttae lock was poisened");
+
+            server.port.clone()
+        };
+
         let listener = 
-            TcpListener::bind(format!("0.0.0.0:{}", self.port))
+            TcpListener::bind(format!("0.0.0.0:{}", port))
             .await
             .expect("Failed to bind to port");
 
@@ -54,10 +59,12 @@ impl HttpServer for Server {
     }
 
     fn cleanup(&self) -> Result<(), Box<dyn std::error::Error>>{
+        let server = self.read().expect("Server lock was poisened");
+
         let config_to_save = ServerConfig {
-            password: self.password.to_owned(),
-            port: self.port.to_owned(),
-            nodes: self.nodes.to_owned()
+            password: server.password.to_owned(),
+            port: server.port.to_owned(),
+            nodes: server.nodes.to_owned()
         };
         
         save_manager::write_config(&config_to_save, &save_manager::SERVER_CONFIG_PATH())?;
