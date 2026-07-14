@@ -5,5 +5,6 @@ pub type SharedServer = Arc<RwLock<Server>>;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub server: SharedServer
+    pub server: SharedServer,
+    pub http_client: reqwest::Client,
 }

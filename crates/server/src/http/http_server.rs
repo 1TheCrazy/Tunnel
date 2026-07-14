@@ -27,7 +27,8 @@ impl HttpServer for SharedServer {
 
     async fn start(&self) {
         let state: AppState = AppState {
-            server: Arc::clone(&self)
+            server: Arc::clone(&self),
+            http_client: reqwest::Client::new()
         };
 
         let app = 
