@@ -2,7 +2,6 @@ mod http;
 mod util;
 
 use crate::http::{http_server::HttpServer, state::SharedServer};
-use tunnel_core::structs::server::Server;
 
 #[tokio::main]
 async fn main() {
