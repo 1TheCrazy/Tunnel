@@ -1,0 +1,9 @@
+[package]
+name = "node"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum.workspace = true
+tunnel_core.workspace = true
+tokio.workspace = true

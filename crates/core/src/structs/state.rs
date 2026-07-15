@@ -9,6 +9,12 @@ pub struct ClientConfig {
     pub servers: Vec<ClientServer>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct NodeConfig {
+    pub used_ips: Vec<String>,
+    pub password: String,
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct ServerConfig {
     pub password: String,
