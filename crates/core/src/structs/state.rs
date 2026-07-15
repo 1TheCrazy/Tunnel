@@ -13,15 +13,13 @@ pub struct ClientConfig {
 pub struct ServerConfig {
     pub password: String,
     pub nodes: Vec<ServerNode>,
-    pub port: String
 }
 
 impl Default for ServerConfig{
     fn default() -> Self {
         Self { 
             password: "".to_string(), 
-            nodes: vec![],
-            port: "8000".to_string()
+            nodes: vec![]
         }
     }
 }

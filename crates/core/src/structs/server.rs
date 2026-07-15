@@ -23,6 +23,5 @@ impl Default for ServerNode {
 #[derive(Debug, Default)]
 pub struct Server {
     pub nodes: Vec<ServerNode>,
-    pub port: String,
     pub password: String
 }

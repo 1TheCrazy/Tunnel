@@ -1,3 +1,4 @@
+use tunnel_core::constants::TUNNEL_SERVICE_PORT;
 use tunnel_core::{structs::server::Server, state::save_manager, structs::state::ServerConfig};
 use axum::{
     Router,
@@ -19,7 +20,6 @@ impl HttpServer for SharedServer {
         let config = save_manager::read_config_or_default::<ServerConfig>(&save_manager::SERVER_CONFIG_PATH());
 
         return Arc::new(RwLock::new(Server {
-            port: config.port,
             nodes: config.nodes,
             password: config.password,
         }))
@@ -36,14 +36,8 @@ impl HttpServer for SharedServer {
             .merge(routes::router())
             .with_state(state);
 
-        let port = {
-            let server = self.read().expect("Server sttae lock was poisened");
-
-            server.port.clone()
-        };
-
         let listener = 
-            TcpListener::bind(format!("0.0.0.0:{}", port))
+            TcpListener::bind(format!("0.0.0.0:{}", TUNNEL_SERVICE_PORT))
             .await
             .expect("Failed to bind to port");
 
@@ -64,7 +58,6 @@ impl HttpServer for SharedServer {
 
         let config_to_save = ServerConfig {
             password: server.password.to_owned(),
-            port: server.port.to_owned(),
             nodes: server.nodes.to_owned()
         };
         
