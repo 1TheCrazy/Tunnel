@@ -2,61 +2,52 @@ use std::fmt;
 use std::error::Error;
 use serde::{Deserialize, Serialize};
 use crate::structs::server::ServerNode;
-use crate::structs::client::ClientServer;
-
-#[derive(Debug, Deserialize, Default, Serialize)]
-pub struct ClientConfig {
-    pub servers: Vec<ClientServer>,
-}
 
 #[derive(Debug, Serialize, Deserialize, Default)]
-pub struct NodeConfig {
+pub struct NodeSave {
     pub used_ips: Vec<String>,
-    pub password: String,
     pub self_id: String,
     pub private_key: String
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct ServerConfig {
-    pub password: String,
+pub struct ServerSave {
     pub nodes: Vec<ServerNode>,
 }
 
-impl Default for ServerConfig{
+impl Default for ServerSave{
     fn default() -> Self {
         Self { 
-            password: "".to_string(), 
             nodes: vec![]
         }
     }
 }
 
 #[derive(Debug)]
-pub enum ConfigError {
+pub enum SaveError {
     IO(std::io::Error),
     Json(serde_json::Error),
 }
 
-impl From<std::io::Error> for ConfigError {
+impl From<std::io::Error> for SaveError {
     fn from(error: std::io::Error) -> Self {
         Self::IO(error)
     }
 }
 
-impl From<serde_json::Error> for ConfigError {
+impl From<serde_json::Error> for SaveError {
     fn from(error: serde_json::Error) -> Self {
         Self::Json(error)
     }
 }
 
-impl fmt::Display for ConfigError {
+impl fmt::Display for SaveError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ConfigError::IO(err) => write!(f, "encountered IO error: {}", err),
-            ConfigError::Json(err) => write!(f, "encountered serde error: {}", err),
+            SaveError::IO(err) => write!(f, "encountered IO error: {}", err),
+            SaveError::Json(err) => write!(f, "encountered serde error: {}", err),
         }
     }
 }
 
-impl Error for ConfigError{}
+impl Error for SaveError{}

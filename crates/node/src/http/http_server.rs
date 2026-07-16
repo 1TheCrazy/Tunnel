@@ -1,6 +1,7 @@
 use tunnel_core::constants::TUNNEL_SERVICE_PORT;
-use tunnel_core::structs::state::NodeConfig;
-use tunnel_core::{state::save_manager, structs::node::Node};
+use tunnel_core::structs::save::NodeSave;
+use tunnel_core::structs::config::NodeConfig;
+use tunnel_core::{state::io_manager, structs::node::Node};
 use axum::{
     Router,
 };
@@ -19,13 +20,16 @@ pub trait HttpServer {
 
 impl HttpServer for SharedServer {
     fn from_config() -> SharedServer {
-        let config = save_manager::read_config_or_default::<NodeConfig>(&save_manager::SERVER_CONFIG_PATH());
+        let config = io_manager::read_config_or_default::<NodeConfig>(&io_manager::NODE_CONFIG_PATH());
+        let save = io_manager::read_save_or_default::<NodeSave>(&io_manager::NODE_SAVE_PATH());
 
         return Arc::new(RwLock::new(Node {
-            used_ips: config.used_ips.to_owned(),
+            used_ips: save.used_ips.to_owned(),
+            self_id: save.self_id.to_owned(),
+            private_key: save.private_key.to_owned(),
             password: config.password.to_owned(),
-            self_id: config.self_id.to_owned(),
-            private_key: config.private_key.to_owned()
+            vpn_port: config.vpn_port.to_owned(),
+            server_host: config.server_host.to_owned()
         }))
     }
 
@@ -61,14 +65,13 @@ impl HttpServer for SharedServer {
     fn cleanup(&self) -> Result<(), Box<dyn std::error::Error>>{
         let server = self.read().expect("Server lock was poisened");
 
-        let config_to_save = NodeConfig {
-            password: server.password.to_owned(),
+        let config_to_save = NodeSave {
             used_ips: server.used_ips.to_owned(),
             self_id: server.self_id.to_owned(),
             private_key: server.private_key.to_owned()
         };
         
-        save_manager::write_config(&config_to_save, &save_manager::NODE_CONFIG_PATH())?;
+        io_manager::write_save(&config_to_save, &io_manager::NODE_SAVE_PATH())?;
 
         Ok(())
     }

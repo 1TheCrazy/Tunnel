@@ -1,5 +1,5 @@
 use reqwest::Client;
-use tunnel_core::{constants::{IS_DEV, TUNNEL_SERVICE_PORT}, structs::{http::{CreateNodeRequest, CreateNodeResponse}, node::Node}, wireguard::common::gen_key_pair};
+use tunnel_core::{structs::{http::{CreateNodeRequest, CreateNodeResponse}, node::Node}, wireguard::common::gen_key_pair};
 
 
 pub async fn register_self(self_server: &mut Node) {
@@ -7,18 +7,13 @@ pub async fn register_self(self_server: &mut Node) {
         let keys = gen_key_pair();
 
         let client = Client::new();
-        let server_host = match IS_DEV {
-            true => "localhost",
-            false => "" // TODO: implement cfg here
-        };
-
         let req_body = CreateNodeRequest {
-            port: "1234".to_owned(), // TODO: implement cfg here
-            public_key: keys.public.to_base64()
+            port: self_server.vpn_port.to_owned(),
+            public_key: keys.public
         };
 
         let register_req_res = match client
-            .post(format!("http://{}:{}/nodes/register", server_host, TUNNEL_SERVICE_PORT))
+            .post(format!("http://{}/nodes/register", &self_server.server_host))
             .header("Tunnel-Authorization", &self_server.password)
             .json(&req_body)
             .send()
@@ -43,7 +38,7 @@ pub async fn register_self(self_server: &mut Node) {
         };
 
         self_server.self_id = json.assigned_id;
-        self_server.private_key = keys.private.to_base64()
+        self_server.private_key = keys.private
 
     }
 }

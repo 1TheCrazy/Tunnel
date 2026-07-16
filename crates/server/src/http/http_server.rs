@@ -1,7 +1,8 @@
 use tunnel_core::constants::TUNNEL_SERVICE_PORT;
-use tunnel_core::{structs::server::Server, state::save_manager, structs::state::ServerConfig};
+use tunnel_core::structs::save::ServerSave;
+use tunnel_core::{structs::server::Server, state::io_manager, structs::config::ServerConfig};
 use axum::{
-    Router, ServiceExt,
+    Router,
 };
 use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
@@ -18,12 +19,13 @@ pub trait HttpServer {
 
 impl HttpServer for SharedServer {
     fn from_config() -> SharedServer {
-        let config = save_manager::read_config_or_default::<ServerConfig>(&save_manager::SERVER_CONFIG_PATH());
+        let config = io_manager::read_config_or_default::<ServerConfig>(&io_manager::SERVER_CONFIG_PATH());
+        let save = io_manager::read_save_or_default::<ServerSave>(&io_manager::SERVER_SAVE_PATH());
 
         return Arc::new(RwLock::new(Server {
-            nodes: config.nodes,
-            password: config.password,
-        }))
+            nodes: save.nodes.to_owned(),
+            password: config.password.to_owned(),
+        }));
     }
 
     async fn start(&self) {
@@ -60,12 +62,11 @@ impl HttpServer for SharedServer {
     fn cleanup(&self) -> Result<(), Box<dyn std::error::Error>>{
         let server = self.read().expect("Server lock was poisened");
 
-        let config_to_save = ServerConfig {
-            password: server.password.to_owned(),
+        let config_to_save = ServerSave {
             nodes: server.nodes.to_owned()
         };
         
-        save_manager::write_config(&config_to_save, &save_manager::SERVER_CONFIG_PATH())?;
+        io_manager::write_save(&config_to_save, &io_manager::SERVER_SAVE_PATH())?;
 
         Ok(())
     }
