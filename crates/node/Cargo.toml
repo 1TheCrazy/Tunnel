@@ -7,3 +7,4 @@ edition = "2024"
 axum.workspace = true
 tunnel_core.workspace = true
 tokio.workspace = true
+reqwest.workspace = true

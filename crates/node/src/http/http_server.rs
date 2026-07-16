@@ -1,14 +1,17 @@
-use tunnel_core::constants::TUNNEL_SERVICE_PORT;
+use tunnel_core::constants::{IS_DEV, TUNNEL_SERVICE_PORT};
 use tunnel_core::structs::state::NodeConfig;
-use tunnel_core::{state::save_manager, structs::node::Node};
+use tunnel_core::wireguard::common::gen_key_pair;
+use tunnel_core::{state::save_manager, structs::node::Node, structs::http::CreateNodeRequest};
 use axum::{
     Router,
 };
 use std::sync::{Arc, RwLock};
 use tokio::{net::TcpListener};
+use reqwest::Client;
 use crate::http::state::AppState;
 use crate::http::routes;
 use crate::http::state::SharedServer;
+use crate::util::registration::register_self;
 
 pub trait HttpServer {
     fn from_config() -> SharedServer;
@@ -22,7 +25,8 @@ impl HttpServer for SharedServer {
 
         return Arc::new(RwLock::new(Node {
             used_ips: config.used_ips.to_owned(),
-            password: config.password.to_owned()
+            password: config.password.to_owned(),
+            self_id: config.self_id.to_owned()
         }))
     }
 
@@ -47,6 +51,8 @@ impl HttpServer for SharedServer {
                .expect("Unable to start server, since the shutdown hook cannot be installed");
         };
 
+        register_self(&mut self.write().unwrap()).await;
+
         axum::serve(listener, app)
             .with_graceful_shutdown(shutdown)
             .await
@@ -58,7 +64,8 @@ impl HttpServer for SharedServer {
 
         let config_to_save = NodeConfig {
             password: server.password.to_owned(),
-            used_ips: server.used_ips.to_owned()
+            used_ips: server.used_ips.to_owned(),
+            self_id: server.self_id.to_owned()
         };
         
         save_manager::write_config(&config_to_save, &save_manager::SERVER_CONFIG_PATH())?;

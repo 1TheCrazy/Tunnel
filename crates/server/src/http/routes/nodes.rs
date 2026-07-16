@@ -52,7 +52,6 @@ async fn register(State(state): State<AppState>, headers: HeaderMap, Json(body):
 
 #[axum::debug_handler]
 async fn discover(State(state): State<AppState>, headers: HeaderMap, Json(body): Json<DiscoverNodeRequest>) -> impl IntoResponse {
-    
     let (password, target_ip) = {
         let server = state.server.read().unwrap();
         let password = server.password.clone();

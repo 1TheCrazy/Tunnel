@@ -1,4 +1,5 @@
 mod http;
+mod util;
 
 use crate::http::{http_server::HttpServer, state::SharedServer};
 

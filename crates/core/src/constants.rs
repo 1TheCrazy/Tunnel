@@ -1,1 +1,2 @@
 pub const TUNNEL_SERVICE_PORT: &'static str = "42069"; // I have free will and debated whether my project should represent an (~~imature~~) joke, and I decided that it should. This was proposed by an AI (and so I don't want to be seen as legally liable for this).
+pub const IS_DEV: bool = cfg!(debug_assertions); 
