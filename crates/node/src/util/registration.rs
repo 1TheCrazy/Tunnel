@@ -3,7 +3,9 @@ use tunnel_core::{constants::{IS_DEV, TUNNEL_SERVICE_PORT}, structs::{http::{Cre
 
 
 pub async fn register_self(self_server: &mut Node) {
-    if self_server.self_id.is_empty() {
+    if self_server.self_id.is_empty() ||  self_server.private_key.is_empty() {
+        let keys = gen_key_pair();
+
         let client = Client::new();
         let server_host = match IS_DEV {
             true => "localhost",
@@ -12,7 +14,7 @@ pub async fn register_self(self_server: &mut Node) {
 
         let req_body = CreateNodeRequest {
             port: "1234".to_owned(), // TODO: implement cfg here
-            public_key: gen_key_pair()
+            public_key: keys.public.to_base64()
         };
 
         let register_req_res = match client
@@ -41,6 +43,7 @@ pub async fn register_self(self_server: &mut Node) {
         };
 
         self_server.self_id = json.assigned_id;
+        self_server.private_key = keys.private.to_base64()
 
     }
 }

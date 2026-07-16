@@ -24,7 +24,8 @@ impl HttpServer for SharedServer {
         return Arc::new(RwLock::new(Node {
             used_ips: config.used_ips.to_owned(),
             password: config.password.to_owned(),
-            self_id: config.self_id.to_owned()
+            self_id: config.self_id.to_owned(),
+            private_key: config.private_key.to_owned()
         }))
     }
 
@@ -63,7 +64,8 @@ impl HttpServer for SharedServer {
         let config_to_save = NodeConfig {
             password: server.password.to_owned(),
             used_ips: server.used_ips.to_owned(),
-            self_id: server.self_id.to_owned()
+            self_id: server.self_id.to_owned(),
+            private_key: server.private_key.to_owned()
         };
         
         save_manager::write_config(&config_to_save, &save_manager::NODE_CONFIG_PATH())?;

@@ -13,7 +13,8 @@ pub struct ClientConfig {
 pub struct NodeConfig {
     pub used_ips: Vec<String>,
     pub password: String,
-    pub self_id: String
+    pub self_id: String,
+    pub private_key: String
 }
 
 #[derive(Deserialize, Serialize)]

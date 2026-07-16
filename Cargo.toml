@@ -16,3 +16,4 @@ tunnel_core = { path = "crates/core" }
 rand = "0.9"
 base64 = "0.22"
 reqwest = { version = "0.12", features = ["json"] }
+wireguard-control = "1.7"
