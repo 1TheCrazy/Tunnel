@@ -35,3 +35,9 @@ pub struct CreateClientOnNodeRespone {
     pub success: bool,
     pub vpn_network_ip: String,
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdateNodeRequest{
+    pub id: String,
+    pub ip: String
+}

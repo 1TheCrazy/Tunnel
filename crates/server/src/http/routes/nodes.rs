@@ -1,5 +1,5 @@
 use crate::http::state::AppState;
-use tunnel_core::{util::authorization,constants::TUNNEL_SERVICE_PORT, structs::{http::{CreateClientOnNodeRequest, CreateClientOnNodeRespone, CreateNodeRequest, CreateNodeResponse, DiscoverNodeRequest, DiscoverNodeResponse}, server::ServerNode}, util::rand::get_128_bit_random};
+use tunnel_core::{constants::TUNNEL_SERVICE_PORT, structs::{http::{CreateClientOnNodeRequest, CreateClientOnNodeRespone, CreateNodeRequest, CreateNodeResponse, DiscoverNodeRequest, DiscoverNodeResponse, UpdateNodeRequest}, server::ServerNode}, util::{authorization, rand::get_128_bit_random}};
 use axum::{
     Router, extract::{Json, State}, http::{HeaderMap, StatusCode}, response::IntoResponse, routing::{get, post}
 };
@@ -9,6 +9,7 @@ pub fn router() -> Router<AppState> {
         .route("/list", get(list))
         .route("/register", post(register))
         .route("/discover", post(discover))
+        .route("/update", post(update))
 }
 
 async fn list(State(state): State<AppState>, headers: HeaderMap) -> impl IntoResponse {
@@ -103,4 +104,21 @@ async fn discover(State(state): State<AppState>, headers: HeaderMap, Json(body):
             assigned_vpn_ip: res_json.vpn_network_ip.to_owned()
         })
     ).into_response()
+}
+
+async fn update(State(state): State<AppState>, headers: HeaderMap, Json(body) : Json<UpdateNodeRequest>) -> impl IntoResponse {
+    let mut server = state.server.write().unwrap();
+
+    if !authorization::is_request_authorized(&server.password, &headers){
+        return (StatusCode::UNAUTHORIZED, "Invalid Credentials").into_response();
+    }
+
+    if let Some(index) = server.nodes.iter().position(|x| x.id == body.id) {
+        server.nodes[index].ip = body.ip;
+    }
+    else{
+        return (StatusCode::BAD_REQUEST, "Node id not valid").into_response()
+    }
+
+    return (StatusCode::OK, "OK").into_response();
 }
