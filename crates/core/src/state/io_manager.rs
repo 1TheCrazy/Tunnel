@@ -8,9 +8,9 @@ pub const SERVER_CONFIG_PATH: fn() -> PathBuf = || config_path().join("server.to
 pub const NODE_CONFIG_PATH: fn() -> PathBuf = || config_path().join("node.toml");
 pub const CLIENT_CONFIG_PATH: fn() -> PathBuf = || config_path().join("client.toml");
 
-pub const SERVER_SAVE_PATH: fn() -> PathBuf = || config_path().join("server.save");
-pub const NODE_SAVE_PATH: fn() -> PathBuf = || config_path().join("node.save");
-pub const CLIENT_SAVE_PATH: fn() -> PathBuf = || config_path().join("client.save");
+pub const SERVER_SAVE_PATH: fn() -> PathBuf = || save_path().join("server.save");
+pub const NODE_SAVE_PATH: fn() -> PathBuf = || save_path().join("node.save");
+pub const CLIENT_SAVE_PATH: fn() -> PathBuf = || save_path().join("client.save");
 
 pub fn config_path() -> PathBuf {
     let mut config_dir = dirs::config_dir().expect("Could not find config directory");
