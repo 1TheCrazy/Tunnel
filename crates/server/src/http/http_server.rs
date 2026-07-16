@@ -1,8 +1,9 @@
 use tunnel_core::constants::TUNNEL_SERVICE_PORT;
 use tunnel_core::{structs::server::Server, state::save_manager, structs::state::ServerConfig};
 use axum::{
-    Router,
+    Router, ServiceExt,
 };
+use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
 use tokio::{net::TcpListener};
 use crate::http::state::AppState;
@@ -47,7 +48,10 @@ impl HttpServer for SharedServer {
                .expect("Unable to start server, since the shutdown hook cannot be installed");
         };
 
-        axum::serve(listener, app)
+        axum::serve(
+                listener, 
+                app.into_make_service_with_connect_info::<SocketAddr>()
+            )
             .with_graceful_shutdown(shutdown)
             .await
             .expect("Failed to serve");

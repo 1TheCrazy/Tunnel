@@ -1,13 +1,11 @@
-use tunnel_core::constants::{IS_DEV, TUNNEL_SERVICE_PORT};
+use tunnel_core::constants::TUNNEL_SERVICE_PORT;
 use tunnel_core::structs::state::NodeConfig;
-use tunnel_core::wireguard::common::gen_key_pair;
-use tunnel_core::{state::save_manager, structs::node::Node, structs::http::CreateNodeRequest};
+use tunnel_core::{state::save_manager, structs::node::Node};
 use axum::{
     Router,
 };
 use std::sync::{Arc, RwLock};
 use tokio::{net::TcpListener};
-use reqwest::Client;
 use crate::http::state::AppState;
 use crate::http::routes;
 use crate::http::state::SharedServer;
@@ -68,7 +66,7 @@ impl HttpServer for SharedServer {
             self_id: server.self_id.to_owned()
         };
         
-        save_manager::write_config(&config_to_save, &save_manager::SERVER_CONFIG_PATH())?;
+        save_manager::write_config(&config_to_save, &save_manager::NODE_CONFIG_PATH())?;
 
         Ok(())
     }

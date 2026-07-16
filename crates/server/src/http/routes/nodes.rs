@@ -1,7 +1,9 @@
+use std::net::SocketAddr;
+
 use crate::http::state::AppState;
 use tunnel_core::{constants::TUNNEL_SERVICE_PORT, structs::{http::{CreateClientOnNodeRequest, CreateClientOnNodeRespone, CreateNodeRequest, CreateNodeResponse, DiscoverNodeRequest, DiscoverNodeResponse, UpdateNodeRequest}, server::ServerNode}, util::{authorization, rand::get_128_bit_random}};
 use axum::{
-    Router, extract::{Json, State}, http::{HeaderMap, StatusCode}, response::IntoResponse, routing::{get, post}
+    Router, extract::{ConnectInfo, Json, State}, http::{HeaderMap, StatusCode}, response::IntoResponse, routing::{get, post}
 };
 
 pub fn router() -> Router<AppState> {
@@ -25,7 +27,7 @@ async fn list(State(state): State<AppState>, headers: HeaderMap) -> impl IntoRes
     }
 }
 
-async fn register(State(state): State<AppState>, headers: HeaderMap, Json(body): Json<CreateNodeRequest>) -> impl IntoResponse {
+async fn register(State(state): State<AppState>, headers: HeaderMap, ConnectInfo(addr): ConnectInfo<SocketAddr>, Json(body): Json<CreateNodeRequest>) -> impl IntoResponse {
     if !authorization::is_request_authorized(&state.server.read().unwrap().password, &headers){
         return (StatusCode::UNAUTHORIZED, "Invalid Credentials").into_response();
     }
@@ -33,8 +35,8 @@ async fn register(State(state): State<AppState>, headers: HeaderMap, Json(body):
     let assigned_id = get_128_bit_random();
 
     let node = ServerNode {
-        port: body.ip,
-        ip: body.port,
+        ip: addr.ip().to_string(),
+        port: body.port,
         public_key: body.public_key,
         id: assigned_id.to_owned()
     };

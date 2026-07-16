@@ -11,13 +11,12 @@ pub async fn register_self(self_server: &mut Node) {
         };
 
         let req_body = CreateNodeRequest {
-            ip: "".to_owned(), // TODO: implement public ip here
             port: "1234".to_owned(), // TODO: implement cfg here
             public_key: gen_key_pair()
         };
 
         let register_req_res = match client
-            .post(format!("http://{}:{}", server_host, TUNNEL_SERVICE_PORT))
+            .post(format!("http://{}:{}/nodes/register", server_host, TUNNEL_SERVICE_PORT))
             .header("Tunnel-Authorization", &self_server.password)
             .json(&req_body)
             .send()
