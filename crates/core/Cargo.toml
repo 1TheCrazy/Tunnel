@@ -13,6 +13,5 @@ axum.workspace = true
 x25519-dalek.workspace = true
 toml.workspace = true
 
-
 [target.'cfg(target_os = "linux")'.dependencies]
 wireguard-control.workspace = true

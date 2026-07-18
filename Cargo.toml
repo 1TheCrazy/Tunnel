@@ -1,6 +1,8 @@
 [workspace]
 members = [
-    "crates/core", "crates/node", 
+    "crates/client/core",
+    "crates/core", 
+    "crates/node", 
     "crates/server"
 ]
 
@@ -19,3 +21,4 @@ reqwest = { version = "0.12", features = ["json"] }
 wireguard-control = "1.7"
 toml = "0.9"
 x25519-dalek = { version = "2", features = ["static_secrets", "getrandom"] }
+tempfile = "3"
