@@ -1,5 +1,3 @@
-use std::fmt;
-use std::error::Error;
 use serde::{Deserialize, Serialize};
 use crate::structs::server::ServerNode;
 
@@ -22,32 +20,3 @@ impl Default for ServerSave{
         }
     }
 }
-
-#[derive(Debug)]
-pub enum SaveError {
-    IO(std::io::Error),
-    Json(serde_json::Error),
-}
-
-impl From<std::io::Error> for SaveError {
-    fn from(error: std::io::Error) -> Self {
-        Self::IO(error)
-    }
-}
-
-impl From<serde_json::Error> for SaveError {
-    fn from(error: serde_json::Error) -> Self {
-        Self::Json(error)
-    }
-}
-
-impl fmt::Display for SaveError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            SaveError::IO(err) => write!(f, "encountered IO error: {}", err),
-            SaveError::Json(err) => write!(f, "encountered serde error: {}", err),
-        }
-    }
-}
-
-impl Error for SaveError{}

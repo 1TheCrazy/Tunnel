@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::fs;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use crate::structs::save::SaveError;
+use crate::structs::errors::SaveError;
 
 pub const SERVER_CONFIG_PATH: fn() -> PathBuf = || config_path().join("server.toml");
 pub const NODE_CONFIG_PATH: fn() -> PathBuf = || config_path().join("node.toml");
