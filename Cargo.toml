@@ -1,6 +1,5 @@
 [workspace]
-members = [
-    "crates/client/core",
+members = ["crates/client/cli",
     "crates/core", 
     "crates/node", 
     "crates/server"
@@ -22,3 +21,4 @@ wireguard-control = "1.7"
 toml = "0.9"
 x25519-dalek = { version = "2", features = ["static_secrets", "getrandom"] }
 tempfile = "3"
+clap = { version = "4.6.1", features = ["derive"] }
