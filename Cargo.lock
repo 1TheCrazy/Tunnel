@@ -1821,6 +1821,10 @@ name = "tunnel_client_cli"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "reqwest",
+ "serde",
+ "tokio",
+ "tunnel_core",
 ]
 
 [[package]]

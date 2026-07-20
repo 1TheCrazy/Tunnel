@@ -13,7 +13,7 @@ pub struct ServerSave {
     pub nodes: Vec<ServerNode>,
 }
 
-impl Default for ServerSave{
+impl Default for ServerSave {
     fn default() -> Self {
         Self { 
             nodes: vec![]

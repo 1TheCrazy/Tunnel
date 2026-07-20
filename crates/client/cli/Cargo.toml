@@ -5,3 +5,7 @@ edition = "2024"
 
 [dependencies]
 clap.workspace= true
+tunnel_core.workspace = true
+serde.workspace = true
+reqwest.workspace = true
+tokio.workspace = true
