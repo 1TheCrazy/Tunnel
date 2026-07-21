@@ -7,7 +7,7 @@ use std::process::ExitCode;
 use clap::Parser;
 use structs::cli::Cli;
 
-use crate::{handlers::{list_nodes::list_nodes, list_servers::list_servers, server::server, connect::connect}, structs::cli::Commands, util::constants};
+use crate::{handlers::{connect::connect, list_nodes::list_nodes, list_servers::list_servers, server::server}, structs::{cli::Commands, state::CliClientSave}, util::constants};
 
 #[tokio::main]
 async fn main() -> ExitCode {
@@ -16,7 +16,11 @@ async fn main() -> ExitCode {
     constants::QUIET.set(cli.quiet).unwrap();
 
     if cli.refresh {
-        write_line!("Refreshing node ips...")
+        write_line!("Refreshing nodes...\n");
+        match CliClientSave::refresh().await {
+            Ok(_) => { },
+            Err(_) => return ExitCode::FAILURE
+        };
     }
 
     let operation_res = match cli.command {
