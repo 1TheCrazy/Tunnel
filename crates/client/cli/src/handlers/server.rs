@@ -52,6 +52,10 @@ async fn server_add(name: &str, host: &str, password: Option<String>) -> Result<
         return Err(GenericError("Server name already in use. To modify a server see '--help'".to_owned()).into())
     }
 
+    if let Some(server) = state.servers.iter().find(|server| server.host == host) {
+        return Err(GenericError(format!("A server with the same host is already present ('{}')", server.name)).into())
+    }
+
     let pw = password.unwrap_or("".to_owned());
 
     let node_list = match get_nodes(&host, &pw).await {
@@ -76,8 +80,35 @@ async fn server_add(name: &str, host: &str, password: Option<String>) -> Result<
 }
 
 fn server_remove(name: &str) -> Result<(), Box<dyn Error>> {
+    let mut state = get_mut_save();
+
+    let target_server_index = match state.servers.iter().position(|s| s.name == name) {
+        Some(index) => index,
+        None => return Err(GenericError(format!("There was no server with the name '{}'", name)).into()),
+    };
+
+    state.servers.remove(target_server_index);
+
+    if target_server_index as i32 == state.active_server_index {
+        state.active_server_index = -1;
+    }
+
+    if target_server_index as i32 <= state.active_server_index {
+        state.active_server_index -= 1;
+    }
+
     Ok(())
 }
+
 fn server_set(name: &str) -> Result<(), Box<dyn Error>> {
+    let mut state = get_mut_save();
+
+    let target_server_index = match state.servers.iter().position(|s| s.name == name) {
+        Some(index) => index,
+        None => return Err(GenericError(format!("There was no server with the name '{}'", name)).into()),
+    };
+
+    state.active_server_index = target_server_index as i32;
+
     Ok(())
 }
