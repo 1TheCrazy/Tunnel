@@ -1,8 +1,8 @@
-use std::{error::Error, fmt::format};
+use std::error::Error;
 
-use tunnel_core::structs::server::ServerNode;
+use tunnel_core::structs::{client::ClientNode, server::ServerNode};
 
-pub async fn get_nodes(host: &str, password: &str) -> Result<Vec<ServerNode>, Box<dyn Error>> {
+pub async fn get_nodes(host: &str, password: &str) -> Result<Vec<ClientNode>, Box<dyn Error>> {
     let client = reqwest::Client::new();
     
     let list_req = match client
@@ -20,6 +20,15 @@ pub async fn get_nodes(host: &str, password: &str) -> Result<Vec<ServerNode>, Bo
     }
 
     let body: Vec<ServerNode> = list_req.json().await?;
+    let resolved = body.iter().map(|n| 
+        ClientNode { 
+            ip: n.ip.to_owned(), 
+            port: n.port.to_owned(), 
+            public_key: n.public_key.to_owned(), 
+            id: n.id.to_owned(), 
+            discovered: false
+        }
+    ).collect();
 
-    Ok(body)
+    Ok(resolved)
 }

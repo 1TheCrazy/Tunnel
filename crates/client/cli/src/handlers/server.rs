@@ -5,7 +5,6 @@ use tunnel_core::structs::client::ClientServer;
 use crate::{http::wrapper::get_nodes, structs::{cli::ServerCommand::{self, *}, error::GenericError}, util::io_wrapper::get_mut_save, write_line};
 
 pub async fn server(command: ServerCommand) -> Result<(), ()> {
-
     match command {
         Add {name, host, password} => {
             match server_add(&name, &host, password).await{
@@ -64,7 +63,7 @@ async fn server_add(name: &str, host: &str, password: Option<String>) -> Result<
         host: host.to_owned(),
         name: name.to_owned(),
         password: pw.to_owned(),
-        nodes: node_list.to_owned()
+        nodes: node_list.to_owned(),
     };
 
     state.servers.push(server);
