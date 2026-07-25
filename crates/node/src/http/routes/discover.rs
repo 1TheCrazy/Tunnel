@@ -11,16 +11,14 @@ pub fn router() -> Router<AppState> {
 
 #[axum::debug_handler]
 async fn discover(State(state): State<AppState>, headers: HeaderMap, Json(body): Json<CreateClientOnNodeRequest>) -> impl IntoResponse {
-    {
-        let server = state.server.read().unwrap();
-        let password = server.password.clone();
+    let server = state.server.read().unwrap();
+    let password = server.password.clone();
 
-        if !authorization::is_request_authorized(&password, &headers) {
-            return (StatusCode::UNAUTHORIZED, "Invalid Credentials").into_response();
-        }
-    } // Kill RWLock
-    
-    match register_client(&body.public_client_key) {
+    if !authorization::is_request_authorized(&password, &headers) {
+        return (StatusCode::UNAUTHORIZED, "Invalid Credentials").into_response();
+    }
+
+    match register_client(&body.public_client_key, &server.used_ips) {
         Some(assigned_ip) => return 
             (
                 StatusCode::OK,

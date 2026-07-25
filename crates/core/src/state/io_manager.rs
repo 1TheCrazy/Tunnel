@@ -12,6 +12,9 @@ pub const SERVER_SAVE_PATH: fn() -> PathBuf = || save_path().join("server.save")
 pub const NODE_SAVE_PATH: fn() -> PathBuf = || save_path().join("node.save");
 pub const CLIENT_SAVE_PATH: fn() -> PathBuf = || save_path().join("client.save");
 
+pub const CLIENT_WG_CONFIG_PATH: fn() -> PathBuf = || wireguard_path().join("wg0_client.conf");
+pub const NODE_WG_CONFIG_PATH: fn() -> PathBuf = || wireguard_path().join("tunnel_0_node.conf");
+
 pub fn config_path() -> PathBuf {
     let mut config_dir = dirs::config_dir().expect("Could not find config directory");
 
@@ -22,11 +25,17 @@ pub fn config_path() -> PathBuf {
 }
 
 pub fn save_path() -> PathBuf {
-    let mut config_dir = dirs::config_dir().expect("Could not find config directory");
+    let mut config_dir = config_path();
 
-    config_dir.push("1thecrazy");
-    config_dir.push("tunnel");
     config_dir.push("save");
+
+    return config_dir;
+}
+
+pub fn wireguard_path() -> PathBuf {
+    let mut config_dir = config_path();
+
+    config_dir.push("wg");
 
     return config_dir;
 }

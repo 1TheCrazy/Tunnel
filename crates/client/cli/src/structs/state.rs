@@ -1,19 +1,25 @@
 use serde::{Deserialize, Serialize};
-use tunnel_core::structs::client::ClientServer;
+use tunnel_core::{structs::client::ClientServer, wireguard::common::gen_key_pair};
 
 use crate::{http::wrapper::get_nodes, util::{io_wrapper, state::get_mut_active_server}, write_line};
 
 #[derive(Serialize, Deserialize)]
 pub struct CliClientSave {
     pub active_server_index: i32,
-    pub servers: Vec<ClientServer>
+    pub servers: Vec<ClientServer>,
+    pub public_key: String,
+    pub private_key: String
 }
 
 impl Default for CliClientSave {
     fn default() -> Self {
+        let keys = gen_key_pair();
+        
         Self {
             active_server_index: -1,
-            servers: vec![]
+            servers: vec![],
+            public_key: keys.public,
+            private_key: keys.private
         }
     }
 }

@@ -71,7 +71,7 @@ async fn discover(State(state): State<AppState>, headers: HeaderMap, Json(body):
     };
 
     let client = state.http_client;
-    let target_url = format!("http://{}:{}", target_ip, TUNNEL_SERVICE_PORT);
+    let target_url = format!("http://{}:{}/discover", target_ip, TUNNEL_SERVICE_PORT);
 
     let req_body = CreateClientOnNodeRequest {
         public_client_key: body.public_client_key

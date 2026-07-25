@@ -26,7 +26,7 @@ async fn main() -> ExitCode {
     let operation_res = match cli.command {
         Some(Commands::ListNodes) => list_nodes(),
         Some(Commands::ListServers) => list_servers(),
-        Some(Commands::Connect { id } ) => connect(id),
+        Some(Commands::Connect { id } ) => connect(&id).await,
         Some(Commands::Server { command }) => server(command).await,
         None => /* --help or only global flags */ Ok(())
     };

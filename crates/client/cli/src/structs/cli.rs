@@ -31,7 +31,7 @@ pub enum Commands {
     /// Connect to a node from the currently active server
     Connect {
         /// Id of the node to connect to (use `tunnel list-nodes` to obtain the id)
-        id: i32
+        id: String
     }
 }
 
