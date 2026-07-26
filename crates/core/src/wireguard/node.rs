@@ -1,17 +1,18 @@
-use std::fs;
+use std::{fs, sync::RwLockWriteGuard};
 use std::process::Command;
+use crate::structs::node::Node;
 use crate::{state::io_manager::{NODE_WG_CONFIG_PATH, ensure_parent_dir}, wireguard::common};
 
-pub fn register_client(client_public_key: &str, used_ips: &Vec<String>) -> Option<String> {
-    let last_assigned_ip = match used_ips.last() {
+pub fn register_client(client_public_key: &str, server: &mut RwLockWriteGuard<'_, Node>) -> Option<String> {
+    let last_assigned_ip = match server.used_ips.last() {
         Some(value) => value,
-        None => return Some(String::from("10.8.0.1"))
+        None => return Some(String::from("10.8.0.2"))
     };
 
     let mut proposed_ip_part: i32 = last_assigned_ip.split(".").last().unwrap().parse::<i32>().unwrap() + 1;
 
     // Be sure we don't double-assign ips
-    while !used_ips.iter().any(|ip| ip.ends_with(&format!(".{}", proposed_ip_part))) {
+    while !server.used_ips.iter().any(|ip| ip.ends_with(&format!(".{}", proposed_ip_part))) {
         proposed_ip_part += 1;
     }
 
@@ -22,7 +23,9 @@ pub fn register_client(client_public_key: &str, used_ips: &Vec<String>) -> Optio
         Err(()) => return None
     };
 
-    Some(format!("10.8.0.{}", proposed_ip_part))
+    server.used_ips.push(assigned_ip.clone());
+
+    Some(assigned_ip)
 }
 
 pub fn create_default_node_conf_if_not_exist(node_private_key: &str, port: &str) -> Result<(), ()>{
@@ -61,11 +64,13 @@ pub fn create_default_node_conf(node_private_key: &str, port: &str) -> Result<()
 }
 
 pub fn install_service_if_not_already() -> Result<(), ()> {
+    // This is ok, since the Windows-Service is started automtically on reboot
     #[cfg(target_os = "windows")]
     let out = Command::new(r"C:\Program Files\WireGuard\wg.exe")
         .arg("show")
         .output();
     
+    // TODO: Check if this works on Unix aswell
     #[cfg(not(target_os = "windows"))]
     let out = Command::new(r"sudo")
         .arg("wg")

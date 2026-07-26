@@ -12,7 +12,6 @@ pub const SERVER_SAVE_PATH: fn() -> PathBuf = || save_path().join("server.save")
 pub const NODE_SAVE_PATH: fn() -> PathBuf = || save_path().join("node.save");
 pub const CLIENT_SAVE_PATH: fn() -> PathBuf = || save_path().join("client.save");
 
-pub const CLIENT_WG_CONFIG_PATH: fn() -> PathBuf = || wireguard_path().join("wg0_client.conf");
 pub const NODE_WG_CONFIG_PATH: fn() -> PathBuf = || wireguard_path().join("tunnel_0_node.conf");
 
 pub fn config_path() -> PathBuf {
