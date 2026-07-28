@@ -178,7 +178,7 @@ pub fn activate_service(service_name: &str) -> Result<(), ()>{
         .args([
             "systemctl",
             "start",
-            &format("wg-quick@{}.service", service_name),
+            &format!("wg-quick@{}.service", service_name),
         ])
         .status() {
             Ok(status) =>  {

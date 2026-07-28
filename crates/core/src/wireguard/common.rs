@@ -5,9 +5,6 @@ use x25519_dalek::{PublicKey, StaticSecret};
 
 use crate::state::io_manager;
 
-#[cfg(not(target_os = "windows"))]
-const WG_BIN: &'static str = r"wg";
-
 pub struct KeyPair {
     pub private: String,
     pub public: String,
@@ -24,12 +21,19 @@ pub fn gen_key_pair() -> KeyPair {
 }
 
 pub fn add_peer(interface: &str, public_key: &str, allowed_ip: &str, endpoint: Option<&str>, persistent_keepalive: Option<&str>) -> Result<(), ()> {
+    let mut command_base: Command;
+    
     #[cfg(target_os = "windows")]
-    let mut command_base = Command::new(r"C:\Program Files\WireGuard\wg.exe");
-
+    {
+        command_base = Command::new(r"C:\Program Files\WireGuard\wg.exe");
+    }
+    
     #[cfg(not(target_os = "windows"))]
-    let mut command_base = Command::new(r"sudo")
-        .arg("wg");
+    {
+        command_base = Command::new(r"sudo");
+        command_base
+            .arg("wg");
+    }
     
     let interface_path = io_manager::wireguard_path().join(format!("{}.conf", interface));
     let mut conf_content = match fs::read(&interface_path) {
