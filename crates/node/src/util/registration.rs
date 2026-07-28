@@ -1,15 +1,14 @@
 use reqwest::Client;
-use tunnel_core::{structs::{http::{CreateNodeRequest, CreateNodeResponse}, node::Node}, wireguard::common::gen_key_pair};
+use tunnel_core::structs::{http::{CreateNodeRequest, CreateNodeResponse}, node::Node};
 
 
 pub async fn register_self(self_server: &mut Node) {
-    if self_server.self_id.is_empty() ||  self_server.private_key.is_empty() {
-        let keys = gen_key_pair();
+    if self_server.self_id.is_empty() {
 
         let client = Client::new();
         let req_body = CreateNodeRequest {
             port: self_server.vpn_port.to_owned(),
-            public_key: keys.public
+            public_key: self_server.public_key.to_owned()
         };
 
         let register_req_res = match client
@@ -38,7 +37,6 @@ pub async fn register_self(self_server: &mut Node) {
         };
 
         self_server.self_id = json.assigned_id;
-        self_server.private_key = keys.private
 
     }
 }

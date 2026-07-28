@@ -27,6 +27,7 @@ impl HttpServer for SharedServer {
             used_ips: save.used_ips.to_owned(),
             self_id: save.self_id.to_owned(),
             private_key: save.private_key.to_owned(),
+            public_key: save.public_key.to_owned(),
             password: config.password.to_owned(),
             vpn_port: config.vpn_port.to_owned(),
             server_host: config.server_host.to_owned()
@@ -68,7 +69,8 @@ impl HttpServer for SharedServer {
         let config_to_save = NodeSave {
             used_ips: server.used_ips.to_owned(),
             self_id: server.self_id.to_owned(),
-            private_key: server.private_key.to_owned()
+            private_key: server.private_key.to_owned(),
+            public_key: server.public_key.to_owned()
         };
         
         io_manager::write_save(&config_to_save, &io_manager::NODE_SAVE_PATH())?;
