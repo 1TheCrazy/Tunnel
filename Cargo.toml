@@ -16,7 +16,11 @@ axum = { version = "0.8", features = ["macros"] }
 tunnel_core = { path = "crates/core" }
 rand = "0.9"
 base64 = "0.22"
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = {
+    version = "0.12",
+    default-features = false,
+    features = ["json", "rustls-tls"]
+}
 wireguard-control = "1.7"
 toml = "0.9"
 x25519-dalek = { version = "2", features = ["static_secrets", "getrandom"] }
