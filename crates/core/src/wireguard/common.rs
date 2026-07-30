@@ -43,9 +43,10 @@ pub fn add_peer(interface: &str, public_key: &str, allowed_ip: &str, endpoint: O
             Ok(content) => content
         }
     };
-    conf_content.push_str("\n\n");
-    conf_content.push_str(&format!("PublicKey = {}", public_key));
-    conf_content.push_str(&format!("AllowedIPs = {}", allowed_ip));
+
+    conf_content.push_str("\n[Peer]\n");
+    conf_content.push_str(&format!("PublicKey = {}\n", public_key));
+    conf_content.push_str(&format!("AllowedIPs = {}\n", allowed_ip));
 
     command_base
         .arg("set")

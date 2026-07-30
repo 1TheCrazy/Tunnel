@@ -4,19 +4,24 @@ use crate::structs::node::Node;
 use crate::{state::io_manager::{NODE_WG_CONFIG_PATH, ensure_parent_dir}, wireguard::common};
 
 pub fn register_client(client_public_key: &str, server: &mut RwLockWriteGuard<'_, Node>) -> Option<String> {
-    let last_assigned_ip = match server.used_ips.last() {
-        Some(value) => value,
-        None => &String::from("10.8.0.1") // server-reserved ip, this will get upgraded
+    let proposed_ip_part = (2u8..=254).find(|candidate| {
+        !server
+            .used_ips
+            .iter()
+            .any(|ip| ip.ends_with(&format!(".{candidate}")))
+    });
+
+    let assigned_ip = match proposed_ip_part {
+        Some(ip) => format!("10.8.0.{}", ip.to_string()),
+        None => {
+            // TODO: fix the logging
+            // TODO: add ipv6 support
+            println!("Ran out of ips to assign");
+            return None
+        }
     };
 
-    let mut proposed_ip_part: i32 = last_assigned_ip.split(".").last().unwrap().parse::<i32>().unwrap() + 1;
-
-    // Be sure we don't double-assign ips
-    while !server.used_ips.iter().any(|ip| ip.ends_with(&format!(".{}", proposed_ip_part))) {
-        proposed_ip_part += 1;
-    }
-
-    let assigned_ip = format!("10.8.0.{}", proposed_ip_part.to_string());
+    println!("adding peer with ip: {}", assigned_ip);
 
     match add_peer(client_public_key, &assigned_ip) {
         Ok(()) => {},
@@ -57,6 +62,13 @@ pub fn create_default_node_conf(node_private_key: &str, port: &str) -> Result<()
     conf.push_str("Address = 10.8.0.1/24\n");
     conf.push_str(&format!("ListenPort = {}\n", port));
 
+    // Add NAT translations
+    conf.push_str("\n# Enable automatic forwarding\n");
+    conf.push_str("PostUp = sysctl -w net.ipv4.ip_forward=1\n");
+    conf.push_str("PostUp = iptables -t nat -A POSTROUTING -o $(ip route get 1.1.1.1 | awk '{print $5; exit}') -j MASQUERADE\n\n");
+
+    conf.push_str("PostDown = iptables -t nat -D POSTROUTING -o $(ip route get 1.1.1.1 | awk '{print $5; exit}') -j MASQUERADE\n");
+
     match fs::write(path, conf) {
         Err(_) => return Err(()),
         Ok(()) => return Ok(())
@@ -70,7 +82,6 @@ pub fn install_service_if_not_already() -> Result<(), ()> {
         .arg("show")
         .output();
     
-    // TODO: Check if this works on Unix aswell
     #[cfg(not(target_os = "windows"))]
     let out = Command::new(r"sudo")
         .arg("wg")

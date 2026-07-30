@@ -1,6 +1,6 @@
 use std::fs;
 use std::process::Command;
-use crate::{state::io_manager::{NODE_WG_CONFIG_PATH, ensure_parent_dir, wireguard_path}};
+use crate::state::io_manager::{ensure_parent_dir, wireguard_path};
 
 // Note:
 // I've left a note here for all the poor souls that willingly read and try to understand this code.
@@ -50,12 +50,14 @@ pub fn create_and_activate_client_conf(node_id: &str, client_private_key: &str, 
     conf.push_str("[Interface]\n");
     conf.push_str(&format!("PrivateKey = {}\n", client_private_key));
     conf.push_str(&format!("Address = {}/32\n", assigned_ip));
+    conf.push_str("DNS = 1.1.1.1");
     conf.push_str("\n[Peer]\n");
-    conf.push_str(&format!("PublicKey = {}", node_public_key));
-    conf.push_str(&format!("Endpoint = {}", endpoint));
-    // TODO: sync with conf
-    conf.push_str("AllowedIps = 10.8.0.0/24");
-    conf.push_str("PersistentKeepalive = 25");
+    conf.push_str(&format!("PublicKey = {}\n", node_public_key));
+    conf.push_str(&format!("Endpoint = {}\n", endpoint));
+    // TODO: sync full-/split-tunnel with config 
+    // TODO: Add ipv6 support
+    conf.push_str("AllowedIPs = 0.0.0.0/0\n");
+    conf.push_str("PersistentKeepalive = 25\n");
 
     match fs::write(path, conf) {
         Err(_) => return Err(()),
@@ -120,13 +122,11 @@ pub fn install_service_if_not_already(interface_name: &str) -> Result<(), ()> {
 }
 
 pub fn install_service(interface_name: &str) -> Result<(), ()>{
-    let conf_path = NODE_WG_CONFIG_PATH().join(format!("{}.conf", interface_name));
+    let conf_path = wireguard_path().join(format!("{}.conf", interface_name));
     let conf_path_str = match conf_path.to_str() {
         Some(value) => value,
         None => return Err(())
     };
-
-    println!("{}", conf_path_str);
 
     #[cfg(target_os = "windows")]
     let status = Command::new(r"C:\Program Files\WireGuard\wireguard.exe")
