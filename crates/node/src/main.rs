@@ -6,6 +6,11 @@ use tunnel_core::wireguard::{install, node::{create_default_node_conf_if_not_exi
 
 #[tokio::main]
 async fn main() {
+    #[cfg(target_os = "windows")]
+    {
+        panic!("Tunnel Nodes are currently not supported on Windows. If you can, move your Node to a Linux environment.");
+    }
+
     let wireguard_installed = install::is_wireguard_available();
 
     if !wireguard_installed {

@@ -64,6 +64,7 @@ pub fn create_default_node_conf(node_private_key: &str, port: &str) -> Result<()
 
     // Add NAT translations
     conf.push_str("\n# Enable automatic forwarding\n");
+    // TODO: Add windows support on Node
     conf.push_str("PostUp = sysctl -w net.ipv4.ip_forward=1\n");
     conf.push_str("PostUp = iptables -t nat -A POSTROUTING -o $(ip route get 1.1.1.1 | awk '{print $5; exit}') -j MASQUERADE\n\n");
 
