@@ -1,4 +1,4 @@
-mod structs;
+﻿mod structs;
 mod util;
 mod handlers;
 mod http;
@@ -7,7 +7,7 @@ use std::process::ExitCode;
 use clap::Parser;
 use structs::cli::Cli;
 
-use crate::{handlers::{connect::connect, list_nodes::list_nodes, list_servers::list_servers, server::server}, structs::{cli::Commands, state::CliClientSave}, util::constants};
+use crate::{handlers::{connect::connect, disconnect::disconnect, list_nodes::list_nodes, list_servers::list_servers, server::server, }, structs::{cli::Commands, state::CliClientSave}, util::constants};
 
 #[tokio::main]
 async fn main() -> ExitCode {
@@ -28,6 +28,7 @@ async fn main() -> ExitCode {
         Some(Commands::ListServers) => list_servers(),
         Some(Commands::Connect { id } ) => connect(&id).await,
         Some(Commands::Server { command }) => server(command).await,
+        Some(Commands::Disconnect) => disconnect(),
         None => /* --help or only global flags */ Ok(())
     };
 

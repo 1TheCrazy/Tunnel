@@ -32,7 +32,10 @@ pub enum Commands {
     Connect {
         /// Id of the node to connect to (use `tunnel list-nodes` to obtain the id)
         id: String
-    }
+    },
+
+    /// Disconnect from the connected node, if connected
+    Disconnect
 }
 
 #[derive(Subcommand, Debug)]

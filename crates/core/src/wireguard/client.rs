@@ -197,13 +197,13 @@ pub fn activate_service(service_name: &str) -> Result<(), ()>{
     }
 }
 
-fn deactivate_running_service() -> Result<(), ()>{
+pub fn get_active_service() -> Option<String> {
     #[cfg(target_os = "windows")]
     let output = match Command::new(r"C:\Program Files\WireGuard\wg.exe")
         .arg("show")
         .output() {
             Ok(out) => out,
-            Err(_) => return Err(())
+            Err(_) => return None
         };
     
     #[cfg(not(target_os = "windows"))]
@@ -212,12 +212,12 @@ fn deactivate_running_service() -> Result<(), ()>{
         .arg("show")
         .output() {
             Ok(out) => out,
-            Err(_) => return Err(())
+            Err(_) => return None
         };
 
     let out_string = match String::from_utf8( output.stdout) {
         Ok(str) => str,
-        Err(_) => return Err(())
+        Err(_) => return None
     };
 
     // Parse this output:
@@ -226,7 +226,16 @@ fn deactivate_running_service() -> Result<(), ()>{
     //   public key: ...=
     //   private key: (hidden)
     //   ...
-    let active_service_name = out_string.split("\n").next().unwrap().split(" ").nth(1).unwrap();
+    let active_service_name = out_string.split("\n").next().unwrap().split(" ").nth(1).unwrap().trim().to_owned();
+
+    Some(active_service_name)
+}
+
+pub fn deactivate_running_service() -> Result<(), ()>{
+    let active_service_name = match get_active_service() {
+        Some(value) => value,
+        None => return Ok(()) // Assume no service running
+    };
 
     #[cfg(target_os = "windows")]
     {
