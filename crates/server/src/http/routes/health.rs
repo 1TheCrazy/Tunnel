@@ -10,5 +10,6 @@ pub fn router() -> Router<AppState> {
 }
 
 async fn health() -> &'static str {
+    println!("server: request GET /health -> 200 OK");
     "OK"
 }

@@ -22,6 +22,11 @@ impl HttpServer for SharedServer {
         let config = io_manager::read_config_or_default::<ServerConfig>(&io_manager::SERVER_CONFIG_PATH());
         let save = io_manager::read_save_or_default::<ServerSave>(&io_manager::SERVER_SAVE_PATH());
 
+        println!(
+            "server: loaded config and save state; known_nodes={}",
+            save.nodes.len()
+        );
+
         return Arc::new(RwLock::new(Server {
             nodes: save.nodes.to_owned(),
             password: config.password.to_owned(),
@@ -44,10 +49,13 @@ impl HttpServer for SharedServer {
             .await
             .expect("Failed to bind to port");
 
+        println!("server: listening on 0.0.0.0:{}", TUNNEL_SERVICE_PORT);
+
         let shutdown = async { 
             tokio::signal::ctrl_c().
                 await
                .expect("Unable to start server, since the shutdown hook cannot be installed");
+            println!("server: shutdown signal received");
         };
 
         axum::serve(
@@ -65,6 +73,11 @@ impl HttpServer for SharedServer {
         let config_to_save = ServerSave {
             nodes: server.nodes.to_owned()
         };
+
+        println!(
+            "server: saving state during cleanup; known_nodes={}",
+            config_to_save.nodes.len()
+        );
         
         io_manager::write_save(&config_to_save, &io_manager::SERVER_SAVE_PATH())?;
 

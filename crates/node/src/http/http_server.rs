@@ -5,6 +5,7 @@ use tunnel_core::{state::io_manager, structs::node::Node};
 use axum::{
     Router,
 };
+use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
 use tokio::{net::TcpListener};
 use crate::http::state::AppState;
@@ -22,6 +23,12 @@ impl HttpServer for SharedServer {
     fn from_config() -> SharedServer {
         let config = io_manager::read_config_or_default::<NodeConfig>(&io_manager::NODE_CONFIG_PATH());
         let save = io_manager::read_save_or_default::<NodeSave>(&io_manager::NODE_SAVE_PATH());
+
+        println!(
+            "node: loaded config and save state; registered={} used_ips={}",
+            !save.self_id.is_empty(),
+            save.used_ips.len()
+        );
 
         return Arc::new(RwLock::new(Node {
             used_ips: save.used_ips.to_owned(),
@@ -49,15 +56,18 @@ impl HttpServer for SharedServer {
             .await
             .expect("Failed to bind to port");
 
+        println!("node: listening on 0.0.0.0:{}", TUNNEL_SERVICE_PORT);
+
         let shutdown = async { 
             tokio::signal::ctrl_c().
                 await
                .expect("Unable to start server, since the shutdown hook cannot be installed");
+            println!("node: shutdown signal received");
         };
 
         register_self(&mut self.write().unwrap()).await;
 
-        axum::serve(listener, app)
+        axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
             .with_graceful_shutdown(shutdown)
             .await
             .expect("Failed to serve");
@@ -72,6 +82,12 @@ impl HttpServer for SharedServer {
             private_key: server.private_key.to_owned(),
             public_key: server.public_key.to_owned()
         };
+
+        println!(
+            "node: saving state during cleanup; registered={} used_ips={}",
+            !config_to_save.self_id.is_empty(),
+            config_to_save.used_ips.len()
+        );
         
         io_manager::write_save(&config_to_save, &io_manager::NODE_SAVE_PATH())?;
 
