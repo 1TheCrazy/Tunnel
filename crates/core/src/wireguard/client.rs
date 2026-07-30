@@ -1,6 +1,6 @@
 use std::fs;
 use std::process::Command;
-use crate::state::io_manager::{ensure_parent_dir, wireguard_path};
+use crate::{state::io_manager::{ensure_parent_dir, wireguard_path}, wireguard::util::interface_name_from_node_id};
 
 // Note:
 // I've left a note here for all the poor souls that willingly read and try to understand this code.
@@ -36,9 +36,7 @@ use crate::state::io_manager::{ensure_parent_dir, wireguard_path};
 // Also randomly deciding to document random parts of this project is an uncontrollable urge (where leaving out key documentation is just as intriguing)
 
 pub fn create_and_activate_client_conf(node_id: &str, client_private_key: &str, assigned_ip: &str, node_public_key: &str, endpoint: &str) -> Result<(), ()>{
-    // Strip to 10 hex digits for linux service name restrictions
-    let interface_id: String = node_id.chars().take(10).collect();
-    let interface_name = format!("t_{}", interface_id);
+    let interface_name = interface_name_from_node_id(node_id);
 
     let path = wireguard_path().join(format!("{}.conf", interface_name));
     match ensure_parent_dir(&path) {
@@ -219,6 +217,10 @@ pub fn get_active_service() -> Option<String> {
         Ok(str) => str,
         Err(_) => return None
     };
+
+    if out_string.is_empty() {
+        return None;
+    }
 
     // Parse this output:
     //
