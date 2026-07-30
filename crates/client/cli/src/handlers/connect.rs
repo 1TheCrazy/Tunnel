@@ -14,7 +14,7 @@ pub async fn connect(id: &str) -> Result<(), ()> {
         }
     };
 
-    if ! server.nodes.iter().any(|n| n.id == id) {
+    if !server.nodes.iter().any(|n| n.id == id) {
         write_line!("The selected server didn't contian anode with the given id");
         return Err(());
     }

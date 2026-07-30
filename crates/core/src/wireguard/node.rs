@@ -6,7 +6,7 @@ use crate::{state::io_manager::{NODE_WG_CONFIG_PATH, ensure_parent_dir}, wiregua
 pub fn register_client(client_public_key: &str, server: &mut RwLockWriteGuard<'_, Node>) -> Option<String> {
     let last_assigned_ip = match server.used_ips.last() {
         Some(value) => value,
-        None => return Some(String::from("10.8.0.2"))
+        None => &String::from("10.8.0.1") // server-reserved ip, this will get upgraded
     };
 
     let mut proposed_ip_part: i32 = last_assigned_ip.split(".").last().unwrap().parse::<i32>().unwrap() + 1;
