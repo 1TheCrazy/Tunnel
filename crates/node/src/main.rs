@@ -11,6 +11,8 @@ async fn main() {
         panic!("Tunnel Nodes are currently not supported on Windows. If you can, move your Node to a Linux environment.");
     }
 
+    // Reachable, but since I compile on Windows this sucks to look at
+    #[allow(unreachable_code)]
     let wireguard_installed = install::is_wireguard_available();
 
     if !wireguard_installed {
