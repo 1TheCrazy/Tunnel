@@ -1,4 +1,4 @@
-use tunnel_core::wireguard::{client::{activate_service, create_and_activate_client_conf}, util::interface_name_from_node_id};
+use tunnel_core::wireguard::{client::create_and_activate_client_conf, common::activate_service, util::interface_name_from_node_id};
 
 use crate::{http::wrapper::discover_node, util::{io_wrapper, state::get_mut_active_server}, write_line};
 

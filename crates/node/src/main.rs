@@ -2,17 +2,10 @@ mod http;
 mod util;
 
 use crate::http::{http_server::HttpServer, state::SharedServer};
-use tunnel_core::wireguard::{install, node::{create_default_node_conf_if_not_exist, install_service_if_not_already}};
+use tunnel_core::wireguard::{common::{activate_service, install_service_if_not_already}, install, node::{create_default_node_conf_if_not_exist, install_nat}};
 
 #[tokio::main]
 async fn main() {
-    #[cfg(target_os = "windows")]
-    {
-        panic!("Tunnel Nodes are currently not supported on Windows. If you can, move your Node to a Linux environment.");
-    }
-
-    // Reachable, but since I compile on Windows this sucks to look at
-    #[allow(unreachable_code)]
     let wireguard_installed = install::is_wireguard_available();
 
     if !wireguard_installed {
@@ -29,9 +22,19 @@ async fn main() {
             Err(()) => panic!("Wasn't able to create default Wireguard node config.")
         };
 
-        match install_service_if_not_already() {
+        match install_service_if_not_already("tunnel_0_node") {
             Ok(()) => {},
             Err(()) => panic!("Wasn't able to install the node tunnel service")
+        };
+
+        match activate_service("tunnel_0_node") {
+            Ok(()) => {},
+            Err(()) => panic!("Wasn't able to start the node tunnel service")
+        };
+
+        match install_nat() {
+            Ok(()) => {},
+            Err(()) => panic!("Wasn't able to install NAT")
         }
     } // Drop Lock
 

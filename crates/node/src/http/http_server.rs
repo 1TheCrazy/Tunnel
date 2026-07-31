@@ -1,6 +1,8 @@
 use tunnel_core::constants::TUNNEL_SERVICE_PORT;
 use tunnel_core::structs::save::NodeSave;
 use tunnel_core::structs::config::NodeConfig;
+use tunnel_core::wireguard::common::deactivate_running_service;
+use tunnel_core::wireguard::node::uninstall_nat;
 use tunnel_core::{state::io_manager, structs::node::Node};
 use axum::{
     Router,
@@ -90,6 +92,24 @@ impl HttpServer for SharedServer {
         );
         
         io_manager::write_save(&config_to_save, &io_manager::NODE_SAVE_PATH())?;
+
+        match deactivate_running_service() {
+            Ok(()) => {
+                println!("node: deactivated Tunnel service");
+            },
+            Err(_) => {
+                println!("node: wasn't able to deactivate Tunnel service")
+            }
+        }
+
+        match uninstall_nat() {
+            Ok(()) => {
+                println!("node: uninstalled NAT");
+            },
+            Err(_) => {
+                println!("node: wasn't able to uninstall NAT");
+            }
+        }
 
         Ok(())
     }

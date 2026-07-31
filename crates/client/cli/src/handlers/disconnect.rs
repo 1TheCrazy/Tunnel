@@ -1,4 +1,4 @@
-use tunnel_core::wireguard::client::deactivate_running_service;
+use tunnel_core::wireguard::common::deactivate_running_service;
 
 use crate::write_line;
 

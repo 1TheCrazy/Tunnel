@@ -1,6 +1,8 @@
 use std::{fs, sync::RwLockWriteGuard};
 use std::process::Command;
 use crate::structs::node::Node;
+#[cfg(not(target_os = "windows"))]
+use crate::wireguard::util::get_internet_interface_name;
 use crate::{state::io_manager::{NODE_WG_CONFIG_PATH, ensure_parent_dir}, wireguard::common};
 
 pub fn register_client(client_public_key: &str, server: &mut RwLockWriteGuard<'_, Node>) -> Option<String> {
@@ -62,81 +64,147 @@ pub fn create_default_node_conf(node_private_key: &str, port: &str) -> Result<()
     conf.push_str("Address = 10.8.0.1/24\n");
     conf.push_str(&format!("ListenPort = {}\n", port));
 
-    // Add NAT translations
-    conf.push_str("\n# Enable automatic forwarding\n");
-    // TODO: Add windows support on Node
-    conf.push_str("PostUp = sysctl -w net.ipv4.ip_forward=1\n");
-    conf.push_str("PostUp = iptables -t nat -A POSTROUTING -o $(ip route get 1.1.1.1 | awk '{print $5; exit}') -j MASQUERADE\n\n");
-
-    conf.push_str("PostDown = iptables -t nat -D POSTROUTING -o $(ip route get 1.1.1.1 | awk '{print $5; exit}') -j MASQUERADE\n");
-
     match fs::write(path, conf) {
         Err(_) => return Err(()),
         Ok(()) => return Ok(())
     };
 }
 
-pub fn install_service_if_not_already() -> Result<(), ()> {
-    // This is ok, since the Windows-Service is started automtically on reboot
-    #[cfg(target_os = "windows")]
-    let out = Command::new(r"C:\Program Files\WireGuard\wg.exe")
-        .arg("show")
-        .output();
+pub fn install_nat() -> Result<(), ()> {
+    #[cfg(not(target_os = "windows"))] {
+        // Ready IP forwarding
+        match Command::new("sudo")
+            .args([
+                "sysctl",
+                "-w",
+                "net.ipv4.ip_forward=1"
+            ])
+            .status() 
+        {
+            Ok(exit) => {
+                if !exit.success() {
+                    return Err(())
+                }
+            },
+            Err(_) => return Err(())
+        };
     
-    #[cfg(not(target_os = "windows"))]
-    let out = Command::new(r"sudo")
-        .arg("wg")
-        .arg("show")
-        .output();
+        // Ready NAT mapping
+        let internet_interface = get_internet_interface_name()?;
 
-    let output = match out {
-        Ok(exit) => exit,
-        Err(_) => return Err(()) 
-    };
-
-    if !output.status.success() {
-        return Err(());
+        match Command::new("sudo")
+            .args([
+                "iptables",
+                "-t",
+                "nat",
+                "-A",
+                "POSTROUTING",
+                "-o",
+                &internet_interface,
+                "-j",
+                "MASQUERADE"
+            ])
+            .status()
+        {
+            Ok(exit) => {
+                if !exit.success() {
+                    return Err(())
+                }
+            },
+            Err(_) => return Err(())
+        }
     }
 
-    let output_str = match String::from_utf8(output.stdout) {
-        Ok(value) => value,
-        Err(_) => return Err(())
-    };
+    #[cfg(target_os = "windows")] {
+        match Command::new("powershell")
+            .args([
+                "Set-ItemProperty",
+                "-Path",
+                "\"HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\"",
+                "-Name",
+                "IPEnableRouter",
+                "-Value",
+                "1"
+            ])
+            .status()
+        {
+            Ok(exit) => {
+                if !exit.success() {
+                    return Err(())
+                }
+            },
+            Err(_) => return Err(())
+        }
 
-    if output_str.starts_with("interface: tunnel_0_node") {
-        return Ok(());
+        match Command::new("powershell")
+            .args([
+                "New-NetNat",
+                "-Name",
+                "TunnelNat",
+                "-InternalIPInterfaceAddressPrefix",
+                "10.8.0.0/24"
+            ])
+            .status()
+        {
+            Ok(exit) => {
+                if !exit.success() {
+                    return Err(())
+                }
+            },
+            Err(_) => return Err(())
+        }
     }
 
-    return install_service();
+    Ok(())
 }
 
-pub fn install_service() -> Result<(), ()>{
-    let conf_path = NODE_WG_CONFIG_PATH();
-    let conf_path_str = match conf_path.to_str() {
-        Some(value) => value,
-        None => return Err(())
-    };
+pub fn uninstall_nat() -> Result<(), ()> {
+    #[cfg(not(target_os = "windows"))] {
+        let internet_interface = get_internet_interface_name()?;
 
-    #[cfg(target_os = "windows")]
-    let status = Command::new(r"C:\Program Files\WireGuard\wireguard.exe")
-        .arg("/installtunnelservice")
-        .arg(format!("{}", conf_path_str))
-        .status();
-    
-    #[cfg(not(target_os = "windows"))]
-    let status = Command::new(r"sudo")
-        .arg("wg-quick")
-        .arg("up")
-        .arg(format!("{}", conf_path_str))
-        .status();
+        // Uninstall NAT rule (this isn't really neccessary, but whatever)
+        match Command::new("sudo")
+            .args([
+                "iptables",
+                "-t",
+                "nat",
+                "-D",
+                "POSTROUTING",
+                "-o",
+                &internet_interface, // This assumes a stable internet interface
+                "-j",
+                "MASQUERADE"
+            ])
+            .status()
+        {
+            Ok(exit) => {
+                if !exit.success() {
+                    return Err(())
+                }
+            },
+            Err(_) => return Err(())
+        }
+    }
 
-    let exit = match status {
-        Ok(exit) => exit,
-        Err(_) => return Err(()) 
-    };
-
-    if !exit.success() {
-        return Err(());
+    #[cfg(target_os = "windows")]{
+        // Uninstall NAT rule (this isn't really neccessary, but whatever)
+        match Command::new("powershell")
+            .args([
+                "Remove-NetNat",
+                "-Name",
+                "TunnelNat",
+                "Remove-NetNat",
+                "-Confirm:$false"
+            ])
+            .status()
+        {
+            Ok(exit) => {
+                if !exit.success() {
+                    return Err(())
+                }
+            },
+            Err(_) => return Err(())
+        }
     }
 
     Ok(())
