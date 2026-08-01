@@ -1,9 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::{Deref, DerefMut}};
 
 use serde::{Deserialize, Serialize};
 use tunnel_core::{
-    structs::client::{ClientNode, ClientServer},
-    wireguard::common::gen_key_pair,
+    structs::client::{ClientNode, ClientSave, ClientServer}, wireguard::common::gen_key_pair,
 };
 
 use crate::{
@@ -12,24 +11,22 @@ use crate::{
     write_line,
 };
 
-#[derive(Serialize, Deserialize)]
-pub struct CliClientSave {
-    pub active_server_index: i32,
-    pub servers: Vec<ClientServer>,
-    pub public_key: String,
-    pub private_key: String,
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[repr(transparent)]
+#[serde(transparent)]
+pub struct CliClientSave(pub  ClientSave);
+
+impl Deref for CliClientSave {
+    type Target = ClientSave;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
-impl Default for CliClientSave {
-    fn default() -> Self {
-        let keys = gen_key_pair();
-
-        Self {
-            active_server_index: -1,
-            servers: vec![],
-            public_key: keys.public,
-            private_key: keys.private,
-        }
+impl DerefMut for CliClientSave {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 

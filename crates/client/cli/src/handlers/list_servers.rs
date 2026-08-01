@@ -6,7 +6,7 @@ use crate::{
 pub fn list_servers() -> Result<(), ()> {
     let state = io_wrapper::get_ref_save();
 
-    let servers = state.servers;
+    let servers = &state.servers;
 
     if servers.len() == 0 {
         write_line!("There was no connected server");

@@ -17,7 +17,8 @@ pub fn get_mut_active_server(save: &mut CliClientSave) -> Option<&mut ClientServ
         return None;
     }
 
-    let server: &mut ClientServer = &mut save.servers[save.active_server_index as usize];
+    let index = save.active_server_index as usize;
+    let server: &mut ClientServer = &mut save.servers[index];
 
     Some(server)
 }
