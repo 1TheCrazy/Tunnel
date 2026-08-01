@@ -193,7 +193,6 @@ pub fn uninstall_nat() -> Result<(), ()> {
                 "Remove-NetNat",
                 "-Name",
                 "TunnelNat",
-                "Remove-NetNat",
                 "-Confirm:$false"
             ])
             .status()

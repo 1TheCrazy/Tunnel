@@ -1,5 +1,5 @@
 use std::fs;
-use crate::{state::io_manager::{ensure_parent_dir, wireguard_path}, wireguard::{common::install_service_if_not_already, util::interface_name_from_node_id}};
+use crate::{state::io_manager::{ensure_parent_dir, wireguard_path}, wireguard::{common::{activate_service, install_service_if_not_already}, util::interface_name_from_node_id}};
 
 pub fn create_and_activate_client_conf(node_id: &str, client_private_key: &str, assigned_ip: &str, node_public_key: &str, endpoint: &str) -> Result<(), ()>{
     let interface_name = interface_name_from_node_id(node_id);
@@ -30,6 +30,12 @@ pub fn create_and_activate_client_conf(node_id: &str, client_private_key: &str, 
 
     match install_service_if_not_already(&interface_name) {
         Err(_) => return Err(()),
-        Ok(()) => return Ok(())
+        Ok(()) => { }
     };
+
+    // Service is automatically activated on Windows, but not on linux
+    match activate_service(&interface_name) {
+        Err(_) => return Err(()),
+        Ok(()) => return Ok(())
+    }
 }
