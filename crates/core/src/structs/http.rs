@@ -38,5 +38,4 @@ pub struct CreateClientOnNodeRespone {
 #[derive(Serialize, Deserialize)]
 pub struct UpdateNodeRequest{
     pub id: String,
-    pub ip: String
 }

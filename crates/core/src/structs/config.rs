@@ -1,3 +1,4 @@
+use std::time::Duration;
 use serde::{Deserialize, Serialize};
 
 use crate::constants::TUNNEL_SERVICE_PORT;
@@ -7,7 +8,9 @@ use crate::constants::TUNNEL_SERVICE_PORT;
 pub struct NodeConfig {
     pub vpn_port: String,
     pub password: String,
-    pub server_host: String
+    pub server_host: String,
+    #[serde(with = "humantime_serde")]
+    pub update_period: Duration
 }
 
 #[derive(Deserialize, Serialize)]
@@ -22,7 +25,8 @@ impl Default for NodeConfig{
         Self { 
             vpn_port: "51820".to_string(),
             password: "".to_string(),
-            server_host: format!("localhost:{}", TUNNEL_SERVICE_PORT).to_string()
+            server_host: format!("localhost:{}", TUNNEL_SERVICE_PORT).to_string(),
+            update_period: Duration::from_mins(10)
         }
     }
 }
@@ -30,7 +34,7 @@ impl Default for NodeConfig{
 impl Default for ServerConfig{
     fn default() -> Self {
         Self { 
-            password: "".to_string(), 
+            password: "".to_string(),
         }
     }
 }

@@ -27,3 +27,4 @@ x25519-dalek = { version = "2", features = ["static_secrets", "getrandom"] }
 tempfile = "3"
 clap = { version = "4.6.1", features = ["derive"] }
 tabled = "0.20"
+humantime-serde = "1"

@@ -14,6 +14,7 @@ use crate::http::state::AppState;
 use crate::http::routes;
 use crate::http::state::SharedServer;
 use crate::util::registration::register_self;
+use crate::util::update::register_updating;
 
 pub trait HttpServer {
     fn from_config() -> SharedServer;
@@ -39,7 +40,8 @@ impl HttpServer for SharedServer {
             public_key: save.public_key.to_owned(),
             password: config.password.to_owned(),
             vpn_port: config.vpn_port.to_owned(),
-            server_host: config.server_host.to_owned()
+            server_host: config.server_host.to_owned(),
+            update_period: config.update_period.to_owned()
         }))
     }
 
@@ -60,7 +62,7 @@ impl HttpServer for SharedServer {
 
         println!("node: listening on 0.0.0.0:{}", TUNNEL_SERVICE_PORT);
 
-        let shutdown = async { 
+        let shutdown = async {
             tokio::signal::ctrl_c().
                 await
                .expect("Unable to start server, since the shutdown hook cannot be installed");
@@ -68,6 +70,8 @@ impl HttpServer for SharedServer {
         };
 
         register_self(&mut self.write().unwrap()).await;
+        let node = self.read().unwrap().clone();
+        register_updating(node.update_period, node);
 
         axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
             .with_graceful_shutdown(shutdown)

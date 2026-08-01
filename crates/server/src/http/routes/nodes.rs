@@ -188,7 +188,7 @@ async fn update(State(state): State<AppState>, headers: HeaderMap, ConnectInfo(a
         "server: request POST /nodes/update from {} node_id={} new_ip={}",
         addr,
         body.id,
-        body.ip
+        addr.ip().to_string(),
     );
 
     let mut server = state.server.write().unwrap();
@@ -198,8 +198,8 @@ async fn update(State(state): State<AppState>, headers: HeaderMap, ConnectInfo(a
         return (StatusCode::UNAUTHORIZED, "Invalid Credentials").into_response();
     }
 
-    if let Some(index) = server.nodes.iter().position(|x| x.id == body.id) {
-        server.nodes[index].ip = body.ip;
+    if let Some(node) = server.nodes.iter_mut().find(|node| node.id == body.id) {
+        node.ip = addr.ip().to_string();
     }
     else{
         println!(

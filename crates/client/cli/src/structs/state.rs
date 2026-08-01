@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
-use tunnel_core::{structs::client::ClientServer, wireguard::common::gen_key_pair};
+use tunnel_core::{structs::client::{ClientNode, ClientServer}, wireguard::common::gen_key_pair};
 
 use crate::{http::wrapper::get_nodes, util::{io_wrapper, state::get_mut_active_server}, write_line};
 
@@ -44,7 +46,26 @@ impl CliClientSave {
             }
         };
 
-        server.nodes = nodes;
+        let mut existing_nodes: HashMap<_, _> = std::mem::take(&mut server.nodes)
+            .into_iter()
+            .map(|node| (node.id.clone(), node))
+            .collect();
+
+        server.nodes = nodes
+            .into_iter()
+            .map(|node| {
+                match existing_nodes.remove(&node.id) {
+                    Some(existing_node) => ClientNode {
+                        ip: node.ip,
+                        id: existing_node.id,
+                        port: node.port,
+                        public_key: existing_node.public_key,
+                        discovered: existing_node.discovered,
+                    },
+                    None => node,
+                }
+            })
+            .collect();
 
         Ok(())
     }
