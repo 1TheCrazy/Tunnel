@@ -1,11 +1,17 @@
-use std::{fs, sync::RwLockWriteGuard};
-use std::process::Command;
 use crate::structs::node::Node;
 #[cfg(not(target_os = "windows"))]
 use crate::wireguard::util::get_internet_interface_name;
-use crate::{state::io_manager::{NODE_WG_CONFIG_PATH, ensure_parent_dir}, wireguard::common};
+use crate::{
+    state::io_manager::{NODE_WG_CONFIG_PATH, ensure_parent_dir},
+    wireguard::common,
+};
+use std::process::Command;
+use std::{fs, sync::RwLockWriteGuard};
 
-pub fn register_client(client_public_key: &str, server: &mut RwLockWriteGuard<'_, Node>) -> Option<String> {
+pub fn register_client(
+    client_public_key: &str,
+    server: &mut RwLockWriteGuard<'_, Node>,
+) -> Option<String> {
     let proposed_ip_part = (2u8..=254).find(|candidate| {
         !server
             .used_ips
@@ -19,15 +25,15 @@ pub fn register_client(client_public_key: &str, server: &mut RwLockWriteGuard<'_
             // TODO: fix the logging
             // TODO: add ipv6 support
             println!("Ran out of ips to assign");
-            return None
+            return None;
         }
     };
 
     println!("adding peer with ip: {}", assigned_ip);
 
     match add_peer(client_public_key, &assigned_ip) {
-        Ok(()) => {},
-        Err(()) => return None
+        Ok(()) => {}
+        Err(()) => return None,
     };
 
     server.used_ips.push(assigned_ip.clone());
@@ -35,25 +41,25 @@ pub fn register_client(client_public_key: &str, server: &mut RwLockWriteGuard<'_
     Some(assigned_ip)
 }
 
-pub fn create_default_node_conf_if_not_exist(node_private_key: &str, port: &str) -> Result<(), ()>{
+pub fn create_default_node_conf_if_not_exist(node_private_key: &str, port: &str) -> Result<(), ()> {
     let path = NODE_WG_CONFIG_PATH();
 
     if path.exists() {
         return Ok(());
     }
 
-    match create_default_node_conf(node_private_key, port){
+    match create_default_node_conf(node_private_key, port) {
         Err(_) => return Err(()),
-        Ok(()) => return Ok(())
+        Ok(()) => return Ok(()),
     };
 }
 
-pub fn create_default_node_conf(node_private_key: &str, port: &str) -> Result<(), ()>{
+pub fn create_default_node_conf(node_private_key: &str, port: &str) -> Result<(), ()> {
     let path = NODE_WG_CONFIG_PATH();
 
     match ensure_parent_dir(&path) {
-        Ok(()) => { },
-        Err(_) => return Err(())
+        Ok(()) => {}
+        Err(_) => return Err(()),
     };
 
     let mut conf = String::new();
@@ -66,29 +72,26 @@ pub fn create_default_node_conf(node_private_key: &str, port: &str) -> Result<()
 
     match fs::write(path, conf) {
         Err(_) => return Err(()),
-        Ok(()) => return Ok(())
+        Ok(()) => return Ok(()),
     };
 }
 
 pub fn install_nat() -> Result<(), ()> {
-    #[cfg(not(target_os = "windows"))] {
+    #[cfg(not(target_os = "windows"))]
+    {
         // Ready IP forwarding
         match Command::new("sudo")
-            .args([
-                "sysctl",
-                "-w",
-                "net.ipv4.ip_forward=1"
-            ])
-            .status() 
+            .args(["sysctl", "-w", "net.ipv4.ip_forward=1"])
+            .status()
         {
             Ok(exit) => {
                 if !exit.success() {
-                    return Err(())
+                    return Err(());
                 }
-            },
-            Err(_) => return Err(())
+            }
+            Err(_) => return Err(()),
         };
-    
+
         // Ready NAT mapping
         let internet_interface = get_internet_interface_name()?;
 
@@ -102,20 +105,21 @@ pub fn install_nat() -> Result<(), ()> {
                 "-o",
                 &internet_interface,
                 "-j",
-                "MASQUERADE"
+                "MASQUERADE",
             ])
             .status()
         {
             Ok(exit) => {
                 if !exit.success() {
-                    return Err(())
+                    return Err(());
                 }
-            },
-            Err(_) => return Err(())
+            }
+            Err(_) => return Err(()),
         }
     }
 
-    #[cfg(target_os = "windows")] {
+    #[cfg(target_os = "windows")]
+    {
         match Command::new("powershell")
             .args([
                 "Set-ItemProperty",
@@ -124,16 +128,16 @@ pub fn install_nat() -> Result<(), ()> {
                 "-Name",
                 "IPEnableRouter",
                 "-Value",
-                "1"
+                "1",
             ])
             .status()
         {
             Ok(exit) => {
                 if !exit.success() {
-                    return Err(())
+                    return Err(());
                 }
-            },
-            Err(_) => return Err(())
+            }
+            Err(_) => return Err(()),
         }
 
         match Command::new("powershell")
@@ -142,16 +146,16 @@ pub fn install_nat() -> Result<(), ()> {
                 "-Name",
                 "TunnelNat",
                 "-InternalIPInterfaceAddressPrefix",
-                "10.8.0.0/24"
+                "10.8.0.0/24",
             ])
             .status()
         {
             Ok(exit) => {
                 if !exit.success() {
-                    return Err(())
+                    return Err(());
                 }
-            },
-            Err(_) => return Err(())
+            }
+            Err(_) => return Err(()),
         }
     }
 
@@ -159,7 +163,8 @@ pub fn install_nat() -> Result<(), ()> {
 }
 
 pub fn uninstall_nat() -> Result<(), ()> {
-    #[cfg(not(target_os = "windows"))] {
+    #[cfg(not(target_os = "windows"))]
+    {
         let internet_interface = get_internet_interface_name()?;
 
         // Uninstall NAT rule (this isn't really neccessary, but whatever)
@@ -173,42 +178,38 @@ pub fn uninstall_nat() -> Result<(), ()> {
                 "-o",
                 &internet_interface, // This assumes a stable internet interface
                 "-j",
-                "MASQUERADE"
+                "MASQUERADE",
             ])
             .status()
         {
             Ok(exit) => {
                 if !exit.success() {
-                    return Err(())
+                    return Err(());
                 }
-            },
-            Err(_) => return Err(())
+            }
+            Err(_) => return Err(()),
         }
     }
 
-    #[cfg(target_os = "windows")]{
+    #[cfg(target_os = "windows")]
+    {
         // Uninstall NAT rule (this isn't really neccessary, but whatever)
         match Command::new("powershell")
-            .args([
-                "Remove-NetNat",
-                "-Name",
-                "TunnelNat",
-                "-Confirm:$false"
-            ])
+            .args(["Remove-NetNat", "-Name", "TunnelNat", "-Confirm:$false"])
             .status()
         {
             Ok(exit) => {
                 if !exit.success() {
-                    return Err(())
+                    return Err(());
                 }
-            },
-            Err(_) => return Err(())
+            }
+            Err(_) => return Err(()),
         }
     }
 
     Ok(())
 }
 
-fn add_peer(client_public_key: &str, assigned_ip: &str) -> Result<(), ()>{
+fn add_peer(client_public_key: &str, assigned_ip: &str) -> Result<(), ()> {
     common::add_peer("tunnel_0_node", client_public_key, assigned_ip, None, None)
 }

@@ -1,12 +1,8 @@
 use crate::http::state::AppState;
-use axum::{
-    routing::get,
-    Router,
-};
+use axum::{Router, routing::get};
 
 pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/", get(health))
+    Router::new().route("/", get(health))
 }
 
 async fn health() -> &'static str {

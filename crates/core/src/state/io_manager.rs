@@ -1,8 +1,8 @@
-use std::path::PathBuf;
-use std::fs;
+use crate::structs::errors::SaveError;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use crate::structs::errors::SaveError;
+use std::fs;
+use std::path::PathBuf;
 
 pub const SERVER_CONFIG_PATH: fn() -> PathBuf = || config_path().join("server.toml");
 pub const NODE_CONFIG_PATH: fn() -> PathBuf = || config_path().join("node.toml");
@@ -39,22 +39,28 @@ pub fn wireguard_path() -> PathBuf {
     return config_dir;
 }
 
-pub fn read_config_or_default<T>(path: &PathBuf) -> T where T: DeserializeOwned + Default {
+pub fn read_config_or_default<T>(path: &PathBuf) -> T
+where
+    T: DeserializeOwned + Default,
+{
     let config_content = match fs::read_to_string(path) {
         Err(_) => return T::default(),
-        Ok(content) => content
+        Ok(content) => content,
     };
 
     match toml::from_str(&config_content) {
         Err(_) => return T::default(),
-        Ok(deserialized) => return deserialized
+        Ok(deserialized) => return deserialized,
     };
 }
 
-pub fn read_save_or_default<T>(path: &PathBuf) -> T  where T: DeserializeOwned + Default {
+pub fn read_save_or_default<T>(path: &PathBuf) -> T
+where
+    T: DeserializeOwned + Default,
+{
     let save_content = match fs::read_to_string(path) {
         Err(_) => return T::default(),
-        Ok(content) => content
+        Ok(content) => content,
     };
 
     match serde_json::from_str(&save_content) {
@@ -63,7 +69,10 @@ pub fn read_save_or_default<T>(path: &PathBuf) -> T  where T: DeserializeOwned +
     }
 }
 
-pub fn write_save<T>(obj: &T, path: &PathBuf) -> Result<(), SaveError> where T : Serialize {
+pub fn write_save<T>(obj: &T, path: &PathBuf) -> Result<(), SaveError>
+where
+    T: Serialize,
+{
     ensure_parent_dir(path)?;
 
     let save_string = serde_json::to_string(obj)?;
@@ -72,7 +81,7 @@ pub fn write_save<T>(obj: &T, path: &PathBuf) -> Result<(), SaveError> where T :
     Ok(())
 }
 
-pub fn ensure_parent_dir(path: &PathBuf) -> Result<(), std::io::Error>{
+pub fn ensure_parent_dir(path: &PathBuf) -> Result<(), std::io::Error> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }

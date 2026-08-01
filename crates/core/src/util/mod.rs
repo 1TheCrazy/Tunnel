@@ -1,2 +1,2 @@
-pub mod rand;
 pub mod authorization;
+pub mod rand;

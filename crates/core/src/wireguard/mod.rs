@@ -1,5 +1,5 @@
-pub mod node;
+pub mod client;
 pub mod common;
 pub mod install;
-pub mod client;
+pub mod node;
 pub mod util;

@@ -11,7 +11,7 @@ pub struct Cli {
 
     /// Disables output
     #[arg(long, short, global = true)]
-    pub quiet: bool
+    pub quiet: bool,
 }
 
 #[derive(Subcommand, Debug)]
@@ -31,11 +31,11 @@ pub enum Commands {
     /// Connect to a node from the currently active server
     Connect {
         /// Id of the node to connect to (use `tunnel list-nodes` to obtain the id)
-        id: String
+        id: String,
     },
 
     /// Disconnect from the connected node, if connected
-    Disconnect
+    Disconnect,
 }
 
 #[derive(Subcommand, Debug)]
@@ -60,7 +60,5 @@ pub enum ServerCommand {
     },
 
     /// Set a server to be the active server
-    Set {
-        name: String
-    }
+    Set { name: String },
 }

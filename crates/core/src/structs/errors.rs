@@ -1,11 +1,11 @@
-use std::fmt::{self};
 use std::error::Error;
+use std::fmt::{self};
 
 #[derive(Debug)]
 pub enum ConfigError {
     IO(std::io::Error),
     TomlDesirialization(toml::de::Error),
-    TomlSerialization(toml::ser::Error)
+    TomlSerialization(toml::ser::Error),
 }
 
 impl From<std::io::Error> for ConfigError {
@@ -30,13 +30,17 @@ impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ConfigError::IO(err) => write!(f, "encountered IO error: {}", err),
-            ConfigError::TomlSerialization(err) => write!(f, "encountered toml serialization error: {}", err),
-            ConfigError::TomlDesirialization(err) => write!(f, "encountered toml deserialization error: {}", err),
+            ConfigError::TomlSerialization(err) => {
+                write!(f, "encountered toml serialization error: {}", err)
+            }
+            ConfigError::TomlDesirialization(err) => {
+                write!(f, "encountered toml deserialization error: {}", err)
+            }
         }
     }
 }
 
-impl Error for ConfigError{}
+impl Error for ConfigError {}
 
 #[derive(Debug)]
 pub enum SaveError {
@@ -65,4 +69,4 @@ impl fmt::Display for SaveError {
     }
 }
 
-impl Error for SaveError{}
+impl Error for SaveError {}

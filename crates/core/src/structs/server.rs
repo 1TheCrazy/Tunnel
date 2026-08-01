@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::util::rand::get_128_bit_random;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ServerNode {
@@ -15,7 +15,7 @@ impl Default for ServerNode {
             ip: String::new(),
             port: "51820".into(),
             public_key: String::new(),
-            id: get_128_bit_random()
+            id: get_128_bit_random(),
         }
     }
 }
@@ -23,5 +23,5 @@ impl Default for ServerNode {
 #[derive(Debug, Default)]
 pub struct Server {
     pub nodes: Vec<ServerNode>,
-    pub password: String
+    pub password: String,
 }

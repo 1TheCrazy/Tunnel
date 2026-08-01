@@ -2,9 +2,7 @@ use tunnel_core::wireguard::common::deactivate_running_service;
 
 use crate::write_line;
 
-
 pub fn disconnect() -> Result<(), ()> {
-
     match deactivate_running_service() {
         Ok(()) => return Ok(()),
         Err(_) => {

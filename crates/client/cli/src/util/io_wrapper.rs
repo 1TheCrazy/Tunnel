@@ -4,15 +4,18 @@ use tunnel_core::{state::io_manager, structs::errors::SaveError};
 
 use crate::structs::state::CliClientSave;
 
-pub struct  AutosaveMutCliClientSave {
-    save: CliClientSave
+pub struct AutosaveMutCliClientSave {
+    save: CliClientSave,
 }
 
 impl Drop for AutosaveMutCliClientSave {
-    fn drop(&mut self){
+    fn drop(&mut self) {
         match write_save(&self) {
-            Ok(_) => {},
-            Err(err) => eprintln!("Failed to save mutated state. Changes will not saved: {}", err)
+            Ok(_) => {}
+            Err(err) => eprintln!(
+                "Failed to save mutated state. Changes will not saved: {}",
+                err
+            ),
         }
     }
 }

@@ -1,8 +1,8 @@
 mod health;
 mod nodes;
 
-use axum::Router;
 use crate::http::state::AppState;
+use axum::Router;
 
 pub fn router() -> Router<AppState> {
     Router::new()

@@ -1,9 +1,8 @@
 mod discover;
 
-use axum::Router;
 use crate::http::state::AppState;
+use axum::Router;
 
 pub fn router() -> Router<AppState> {
-    Router::new()
-        .nest("/discover", discover::router())
+    Router::new().nest("/discover", discover::router())
 }
