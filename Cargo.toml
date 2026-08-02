@@ -1,5 +1,6 @@
 [workspace]
 members = ["crates/client/cli",
+    "crates/client/gui",
     "crates/core", 
     "crates/node", 
     "crates/server"
@@ -28,3 +29,5 @@ tempfile = "3"
 clap = { version = "4.6.1", features = ["derive"] }
 tabled = "0.20"
 humantime-serde = "1"
+tauri = "2.11.5"
+tauri-build = "2.4.1"
