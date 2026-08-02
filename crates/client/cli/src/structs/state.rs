@@ -2,7 +2,7 @@ use std::{collections::HashMap, ops::{Deref, DerefMut}};
 
 use serde::{Deserialize, Serialize};
 use tunnel_core::{
-    structs::client::{ClientNode, ClientSave, ClientServer}, wireguard::common::gen_key_pair,
+    structs::client::{ClientNode, ClientSave},
 };
 
 use crate::{

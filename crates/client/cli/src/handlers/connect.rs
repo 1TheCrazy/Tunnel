@@ -27,7 +27,10 @@ pub async fn connect(id: &str) -> Result<(), ()> {
         return Err(());
     };
 
-    if !node.discovered {
+    let discovered = node.discovered;
+    drop(state);
+
+    if !discovered {
         return connect_fresh(id).await;
     } else {
         return connect_known(id);
