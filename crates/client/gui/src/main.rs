@@ -5,6 +5,9 @@ mod http;
 mod state;
 
 fn main() {
+    #[cfg(target_os = "macos")]
+    panic!("MacOS does is currently not supported by Tunnel::Node");
+    
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             commands::list_servers,

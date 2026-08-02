@@ -1,5 +1,5 @@
 use crate::structs::node::Node;
-#[cfg(not(target_os = "windows"))]
+#[cfg(target_os = "linux")]
 use crate::wireguard::util::get_internet_interface_name;
 use crate::{
     state::io_manager::{NODE_WG_CONFIG_PATH, ensure_parent_dir},
@@ -77,7 +77,7 @@ pub fn create_default_node_conf(node_private_key: &str, port: &str) -> Result<()
 }
 
 pub fn install_nat() -> Result<(), ()> {
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "linux")]
     {
         // Ready IP forwarding
         match Command::new("sudo")
@@ -163,7 +163,7 @@ pub fn install_nat() -> Result<(), ()> {
 }
 
 pub fn uninstall_nat() -> Result<(), ()> {
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "linux")]
     {
         let internet_interface = get_internet_interface_name()?;
 

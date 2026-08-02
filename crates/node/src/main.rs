@@ -10,11 +10,14 @@ use tunnel_core::wireguard::{
 
 #[tokio::main]
 async fn main() {
+    #[cfg(target_os = "macos")]
+    panic!("MacOS does is currently not supported by Tunnel::Node");
+
     let wireguard_installed = install::is_wireguard_available();
 
     if !wireguard_installed {
         panic!(
-            "Wireguard not installed.\nInstalling wireguard through Tunnel is currently not supported."
+            "Wireguard not installed."
         )
     }
 

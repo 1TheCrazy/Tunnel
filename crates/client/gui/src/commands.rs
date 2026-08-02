@@ -94,7 +94,7 @@ pub fn network_stats() -> Result<Option<NetworkStats>, String> {
     let command = Command::new(r"C:\Program Files\WireGuard\wg.exe")
         .arg("show")
         .output();
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "linux")]
     let command = Command::new("sudo").args(["wg", "show"]).output();
 
     let output = command.map_err(|error| format!("Couldn't run wg show: {error}"))?;

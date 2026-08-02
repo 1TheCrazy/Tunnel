@@ -3,7 +3,7 @@ use std::process::Command;
 #[cfg(target_os = "windows")]
 const BIN: &str = r"C:\Program Files\WireGuard\wg.exe";
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(target_os = "linux")]
 const BIN: &str = r"wg";
 
 pub fn is_wireguard_available() -> bool {

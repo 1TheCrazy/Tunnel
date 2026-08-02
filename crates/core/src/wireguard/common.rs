@@ -67,7 +67,7 @@ pub fn add_peer(
         command_base = Command::new(r"C:\Program Files\WireGuard\wg.exe");
     }
 
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "linux")]
     {
         command_base = Command::new(r"sudo");
         command_base.arg("wg");
@@ -150,7 +150,7 @@ pub fn install_service_if_not_already(interface_name: &str) -> Result<(), ()> {
         service_installed = names.contains(&format!("WireGuardTunnel${}", interface_name));
     }
 
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "linux")]
     {
         let output = match Command::new("sudo")
             .args(["ls", "/etc/wireguard/*.conf"])
@@ -188,7 +188,7 @@ pub fn install_service(interface_name: &str) -> Result<(), ()> {
         .arg(format!("{}", conf_path_str))
         .status();
 
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "linux")]
     let status = Command::new(r"sudo")
         .arg("cp")
         .arg(format!("{}", conf_path_str))
@@ -234,7 +234,7 @@ pub fn activate_service(service_name: &str) -> Result<(), ()> {
         };
     }
 
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "linux")]
     {
         match Command::new("sudo")
             .args([
@@ -266,7 +266,7 @@ pub fn get_active_service() -> Option<String> {
         Err(_) => return None,
     };
 
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "linux")]
     let output = match Command::new(r"sudo").arg("wg").arg("show").output() {
         Ok(out) => out,
         Err(_) => return None,
@@ -327,7 +327,7 @@ pub fn deactivate_running_service() -> Result<(), ()> {
         };
     }
 
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "linux")]
     {
         match Command::new("sudo")
             .args([

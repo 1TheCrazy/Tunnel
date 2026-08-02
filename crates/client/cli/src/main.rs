@@ -1,4 +1,4 @@
-mod handlers;
+﻿mod handlers;
 mod http;
 mod structs;
 mod util;
@@ -18,6 +18,9 @@ use crate::{
 
 #[tokio::main]
 async fn main() -> ExitCode {
+    #[cfg(target_os = "macos")]
+    panic!("MacOS does is currently not supported by Tunnel::Client");
+
     let cli = Cli::parse();
 
     constants::QUIET.set(cli.quiet).unwrap();
