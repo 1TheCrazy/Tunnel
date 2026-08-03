@@ -82,7 +82,7 @@ A Node can have the following configuration in `node.toml`:
 A typical Node configuration therefore might look like this:
 ```
 server_host = "123.123.123.123:42069" # or yourdomain.com:42069
-                              # explicitly include port 42069
+                                      # explicitly include port 42069
 password = "supersecretpassword"
 vpn_port = 12345
 update_period = "24h 10min"
@@ -120,7 +120,7 @@ Or on Windows (make sure you run this shell as an administrator):
 ```
 & ([scriptblock]::Create((Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/1TheCrazy/Tunnel/main/install/install.ps1').Content)) --node # or --server or --cli
 ```
-4. Run the downloaded file from a shell: `./node`, `./server`, `./node.exe`, or `./server.exe`<br>
+4. Run the downloaded file from a shell: `./node`, `./server` / `./node.exe`, or `./server.exe`<br>
 To run the CLI, open a new shell and type `tunnel --help` to get started.
 
 ## CLI
