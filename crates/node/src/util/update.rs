@@ -20,13 +20,16 @@ pub fn register_updating(
         loop {
             interval.tick().await;
 
-            let id = node_state.read().unwrap().self_id.clone();
+            let (id, name) = {
+                let node = node_state.read().unwrap();
+                (node.self_id.clone(), node.name.clone())
+            };
             if id.is_empty() {
                 continue;
             }
 
             if sender
-                .send(NodeToServerMessage::Update(UpdateNodeRequest { id }))
+                .send(NodeToServerMessage::Update(UpdateNodeRequest { id, name }))
                 .await
                 .is_err()
             {

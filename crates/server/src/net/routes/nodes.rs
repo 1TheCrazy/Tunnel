@@ -89,6 +89,7 @@ async fn register(
     let assigned_id = get_128_bit_random();
 
     let node = ServerNode {
+        name: body.name,
         ip: addr.ip().to_string(),
         port: body.port,
         public_key: body.public_key,
@@ -244,6 +245,7 @@ async fn handle_websocket(socket: WebSocket, state: AppState, addr: SocketAddr) 
                 Ok(NodeToServerMessage::Update(update)) if update.id == node_id => {
                     if let Some(node) = state.server.write().unwrap().nodes.iter_mut().find(|node| node.id == node_id) {
                         node.ip = addr.ip().to_string();
+                        node.name = update.name;
                     }
                 }
                 Ok(NodeToServerMessage::DiscoverResponse { request_id, response }) => {
@@ -301,6 +303,7 @@ async fn update(
 
     if let Some(node) = server.nodes.iter_mut().find(|node| node.id == body.id) {
         node.ip = addr.ip().to_string();
+        node.name = body.name;
     } else {
         println!(
             "server: request POST /nodes/update from {} -> 400 node_id_not_found={}",

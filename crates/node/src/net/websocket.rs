@@ -50,6 +50,7 @@ impl WebSocketProvider for SharedState {
         );
 
         return Arc::new(RwLock::new(Node {
+            name: config.name.to_owned(),
             used_ips: save.used_ips.to_owned(),
             self_id: save.self_id.to_owned(),
             private_key: save.private_key.to_owned(),

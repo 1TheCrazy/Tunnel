@@ -4,6 +4,7 @@ use std::time::Duration;
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct NodeConfig {
+    pub name: String,
     pub vpn_port: String,
     pub password: String,
     pub server_host: String,
@@ -23,6 +24,7 @@ pub struct ServerConfig {
 impl Default for NodeConfig {
     fn default() -> Self {
         Self {
+            name: "Unnamed node".to_string(),
             vpn_port: "51820".to_string(),
             password: "".to_string(),
             server_host: "localhost".to_string(),

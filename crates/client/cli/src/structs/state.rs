@@ -61,6 +61,7 @@ impl CliClientSave {
             .into_iter()
             .map(|node| match existing_nodes.remove(&node.id) {
                 Some(existing_node) => ClientNode {
+                    name: node.name,
                     ip: node.ip,
                     id: existing_node.id,
                     port: node.port,

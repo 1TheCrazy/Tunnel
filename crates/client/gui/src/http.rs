@@ -64,6 +64,7 @@ pub async fn get_nodes(server: &mut ClientServer) -> Result<Vec<ClientNode>, Box
     Ok(body
         .iter()
         .map(|n| ClientNode {
+            name: n.name.to_owned(),
             ip: n.ip.to_owned(),
             port: n.port.to_owned(),
             public_key: n.public_key.to_owned(),

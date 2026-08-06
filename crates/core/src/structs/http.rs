@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateNodeRequest {
+    pub name: String,
     pub port: String,
     pub public_key: String,
 }
@@ -38,6 +39,7 @@ pub struct CreateClientOnNodeRespone {
 #[derive(Serialize, Deserialize)]
 pub struct UpdateNodeRequest {
     pub id: String,
+    pub name: String,
 }
 
 #[derive(Serialize, Deserialize)]

@@ -321,7 +321,7 @@ function renderNodes(nodes, hasActiveServer) {
 
   for (const node of nodes) {
     const row = document.createElement("tr");
-    row.append(cell(node.id), cell(node.ip), cell(String(node.discovered)));
+    row.append(cell(node.name || "Unnamed node"), cell(node.id), cell(node.ip), cell(String(node.discovered)));
 
     const actions = document.createElement("td");
     const wrap = document.createElement("div");
@@ -368,11 +368,11 @@ function renderMapNodes(nodes, hasActiveServer) {
       const marker = document.createElement("button");
       marker.type = "button";
       marker.className = "map-node";
-      marker.title = `${node.id} - ${node.ip}`;
+      marker.title = `${node.name || node.id} - ${node.ip}`;
       marker.dataset.latitude = node.latitude;
       marker.dataset.longitude = node.longitude;
       marker.classList.toggle("connected", node.connected);
-      marker.setAttribute("aria-label", `Connect to node ${node.id} at ${node.ip}`);
+      marker.setAttribute("aria-label", `Connect to node ${node.name || node.id} at ${node.ip}`);
       marker.tabIndex = group.worldOffset === 0 ? 0 : -1;
       marker.setAttribute("aria-hidden", String(group.worldOffset !== 0));
       if (group.members.length > 1) {
@@ -388,7 +388,7 @@ function renderMapNodes(nodes, hasActiveServer) {
         <span class="map-node-ip"></span>
         <span class="map-node-status"></span>
       `;
-      tooltip.querySelector("strong").textContent = node.id;
+      tooltip.querySelector("strong").textContent = node.name || node.id;
       tooltip.querySelector(".map-node-ip").textContent = node.ip;
       tooltip.querySelector(".map-node-status").textContent = node.connected
         ? "Connected"

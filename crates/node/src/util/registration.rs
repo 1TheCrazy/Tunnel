@@ -11,16 +11,17 @@ pub async fn register_self(node_lock: SharedState) {
     };
 
     if is_node_id_empty {
-        let (server_host, vpn_port, host_fingerprint, public_key, password) = {
+        let (name, server_host, vpn_port, host_fingerprint, public_key, password) = {
             let node = node_lock.read().unwrap();
             
+            let name = node.name.clone();
             let server_host = node.server_host.clone();
             let vpn_port = node.vpn_port.clone();
             let host_fingerprint = node.host_fingerprint.clone();
             let public_key = node.public_key.clone();
             let password = node.password.clone();
 
-            (server_host, vpn_port, host_fingerprint, public_key, password)
+            (name, server_host, vpn_port, host_fingerprint, public_key, password)
         }; // Release lock
 
         println!(
@@ -44,6 +45,7 @@ pub async fn register_self(node_lock: SharedState) {
         .expect("Failed to create https client");
         
         let req_body = CreateNodeRequest {
+            name,
             port: vpn_port.to_owned(),
             public_key: public_key.to_owned(),
         };

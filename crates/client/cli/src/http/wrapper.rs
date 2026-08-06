@@ -48,6 +48,7 @@ pub async fn get_nodes(server: &mut ClientServer) -> Result<Vec<ClientNode>, Box
 
     let body: Vec<ServerNode> = list_req.json().await?;
     Ok(body.into_iter().map(|n| ClientNode {
+        name: n.name,
         ip: n.ip,
         port: n.port,
         public_key: n.public_key,

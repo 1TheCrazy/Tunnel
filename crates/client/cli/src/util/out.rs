@@ -11,6 +11,9 @@ use crate::write_line;
 
 #[derive(Tabled)]
 struct ClientNodeRow {
+    #[tabled(rename = "Name")]
+    name: String,
+
     #[tabled(rename = "ID")]
     id: String,
 
@@ -37,6 +40,11 @@ pub fn print_node_table(nodes: &Vec<ClientNode>) {
     let rows: Vec<ClientNodeRow> = nodes
         .iter()
         .map(|n| ClientNodeRow {
+            name: if n.name.is_empty() {
+                "Unnamed node".to_owned()
+            } else {
+                n.name.to_owned()
+            },
             id: n.id.to_owned(),
             ip: n.ip.to_owned(),
             discovered: n.discovered.to_owned(),

@@ -2,6 +2,7 @@ use std::time::Duration;
 
 #[derive(Clone)]
 pub struct Node {
+    pub name: String,
     pub used_ips: Vec<String>,
     pub password: String,
     pub self_id: String,

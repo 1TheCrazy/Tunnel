@@ -14,6 +14,8 @@ pub struct ClientServer {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ClientNode {
+    #[serde(default)]
+    pub name: String,
     pub ip: String,
     pub port: String,
     pub public_key: String,

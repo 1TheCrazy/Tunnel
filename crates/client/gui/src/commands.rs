@@ -29,6 +29,7 @@ pub struct ServerRow {
 
 #[derive(Serialize)]
 pub struct NodeRow {
+    pub name: String,
     pub id: String,
     pub ip: String,
     pub discovered: bool,
@@ -181,6 +182,7 @@ pub fn list_nodes() -> Result<Vec<NodeRow>, String> {
         .nodes
         .iter()
         .map(|node| NodeRow {
+            name: node.name.to_owned(),
             id: node.id.to_owned(),
             ip: node.ip.to_owned(),
             discovered: node.discovered,
@@ -253,6 +255,7 @@ pub async fn refresh() -> Result<(), String> {
         .into_iter()
         .map(|node| match existing_nodes.remove(&node.id) {
             Some(existing_node) => ClientNode {
+                name: node.name,
                 ip: node.ip,
                 id: existing_node.id,
                 port: node.port,
