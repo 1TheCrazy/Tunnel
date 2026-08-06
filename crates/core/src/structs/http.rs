@@ -39,3 +39,23 @@ pub struct CreateClientOnNodeRespone {
 pub struct UpdateNodeRequest {
     pub id: String,
 }
+
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type", content = "payload", rename_all = "snake_case")]
+pub enum NodeToServerMessage {
+    Connected { node_id: String },
+    Update(UpdateNodeRequest),
+    DiscoverResponse {
+        request_id: String,
+        response: CreateClientOnNodeRespone,
+    },
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type", content = "payload", rename_all = "snake_case")]
+pub enum ServerToNodeMessage {
+    DiscoverRequest {
+        request_id: String,
+        request: CreateClientOnNodeRequest,
+    },
+}

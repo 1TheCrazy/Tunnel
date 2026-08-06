@@ -1,10 +1,14 @@
 use crate::SharedServer;
-use crate::http::routes;
-use crate::http::state::AppState;
+use crate::net::routes;
+use crate::net::state::AppState;
+use crate::util::tls::create_pem_files_if_not_already;
 use axum::Router;
+use axum_server::Handle;
+use axum_server::tls_rustls::RustlsConfig;
 use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
-use tokio::net::TcpListener;
+use std::collections::HashMap;
+use std::time::Duration;
 use tunnel_core::constants::TUNNEL_SERVICE_PORT;
 use tunnel_core::structs::save::ServerSave;
 use tunnel_core::{state::io_manager, structs::config::ServerConfig, structs::server::Server};
@@ -17,9 +21,11 @@ pub trait HttpServer {
 
 impl HttpServer for SharedServer {
     fn from_config() -> SharedServer {
-        let config =
-            io_manager::read_config_or_default::<ServerConfig>(&io_manager::SERVER_CONFIG_PATH());
+        let config = io_manager::read_config_or_default::<ServerConfig>(&io_manager::SERVER_CONFIG_PATH());
         let save = io_manager::read_save_or_default::<ServerSave>(&io_manager::SERVER_SAVE_PATH());
+
+        create_pem_files_if_not_already(&config.self_hostname)
+            .expect("Failed to create TLS pem files");
 
         println!(
             "server: loaded config and save state; known_nodes={}",
@@ -35,29 +41,44 @@ impl HttpServer for SharedServer {
     async fn start(&self) {
         let state: AppState = AppState {
             server: Arc::clone(&self),
-            http_client: reqwest::Client::new(),
+            node_connections: Arc::new(RwLock::new(HashMap::new())),
+            pending_discoveries: Arc::new(RwLock::new(HashMap::new())),
         };
 
-        let app = Router::new().merge(routes::router()).with_state(state);
+        let app = 
+            Router::new()
+            .merge(routes::router())
+            .with_state(state);
 
-        let listener = TcpListener::bind(format!("0.0.0.0:{}", TUNNEL_SERVICE_PORT))
+        let address: SocketAddr = format!("0.0.0.0:{}", TUNNEL_SERVICE_PORT)
+            .parse()
+            .expect("Invalid server adress");
+
+        let tls_config = 
+            RustlsConfig::from_pem_file(io_manager::TLS_CERT_PATH(), io_manager::TLS_KEY_PATH())
             .await
-            .expect("Failed to bind to port");
+            .expect("Failed to load TLS certificate or private key");
 
-        println!("server: listening on 0.0.0.0:{}", TUNNEL_SERVICE_PORT);
+        let handle: Handle<SocketAddr> = Handle::new();
+        let shutdown_handle = handle.clone();
 
-        let shutdown = async {
+        tokio::spawn(async move {
             tokio::signal::ctrl_c()
                 .await
-                .expect("Unable to start server, since the shutdown hook cannot be installed");
-            println!("server: shutdown signal received");
-        };
+                .expect("Failed to install shutdown hook");
 
-        axum::serve(
-            listener,
-            app.into_make_service_with_connect_info::<SocketAddr>(),
+            println!("server: shutdown signal received");
+
+            shutdown_handle.graceful_shutdown(
+                Some(Duration::from_secs(10)),
+            );
+        });        
+
+        axum_server::bind_rustls(address, tls_config)
+        .handle(handle)
+        .serve(
+            app.into_make_service_with_connect_info::<SocketAddr>()
         )
-        .with_graceful_shutdown(shutdown)
         .await
         .expect("Failed to serve");
     }

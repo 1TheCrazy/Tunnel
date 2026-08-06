@@ -14,6 +14,9 @@ pub const CLIENT_SAVE_PATH: fn() -> PathBuf = || save_path().join("client.save")
 
 pub const NODE_WG_CONFIG_PATH: fn() -> PathBuf = || wireguard_path().join("tunnel_0_node.conf");
 
+pub const TLS_KEY_PATH: fn() -> PathBuf = || tls_path().join("cert.pem");
+pub const TLS_CERT_PATH: fn() -> PathBuf = || tls_path().join("key.pem");
+
 pub fn config_path() -> PathBuf {
     let mut config_dir = dirs::config_dir().expect("Could not find config directory");
 
@@ -35,6 +38,14 @@ pub fn wireguard_path() -> PathBuf {
     let mut config_dir = config_path();
 
     config_dir.push("wg");
+
+    return config_dir;
+}
+
+pub fn tls_path() -> PathBuf {
+    let mut config_dir = config_path();
+
+    config_dir.push("tls");
 
     return config_dir;
 }

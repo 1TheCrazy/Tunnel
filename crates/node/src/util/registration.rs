@@ -1,28 +1,60 @@
-use reqwest::Client;
-use tunnel_core::structs::{
-    http::{CreateNodeRequest, CreateNodeResponse},
-    node::Node,
-};
+use std::sync::Arc;
 
-pub async fn register_self(self_server: &mut Node) {
-    if self_server.self_id.is_empty() {
+use tunnel_core::{constants::TUNNEL_SERVICE_PORT, net::pinned_tls::{create_pinned_client, get_fingerprint_option}, structs::http::{CreateNodeRequest, CreateNodeResponse}};
+
+use crate::net::state::SharedState;
+
+pub async fn register_self(node_lock: SharedState) {
+    let is_node_id_empty = {
+        let node = node_lock.read().unwrap();
+        node.self_id.is_empty()
+    };
+
+    if is_node_id_empty {
+        let (server_host, vpn_port, host_fingerprint, public_key, password) = {
+            let node = node_lock.read().unwrap();
+            
+            let server_host = node.server_host.clone();
+            let vpn_port = node.vpn_port.clone();
+            let host_fingerprint = node.host_fingerprint.clone();
+            let public_key = node.public_key.clone();
+            let password = node.password.clone();
+
+            (server_host, vpn_port, host_fingerprint, public_key, password)
+        }; // Release lock
+
         println!(
             "node: registering with server host={} vpn_port={}",
-            self_server.server_host, self_server.vpn_port
+            server_host, vpn_port
         );
 
-        let client = Client::new();
+        let callback_state = Arc::clone(&node_lock);
+
+        let client = create_pinned_client(
+            &get_fingerprint_option(&host_fingerprint),
+            &server_host, 
+            Box::new(move |print| {
+                let mut node = callback_state.write().unwrap();
+
+                if node.host_fingerprint.is_empty() {
+                    node.host_fingerprint = print;
+                }
+            }) 
+        )
+        .expect("Failed to create https client");
+        
         let req_body = CreateNodeRequest {
-            port: self_server.vpn_port.to_owned(),
-            public_key: self_server.public_key.to_owned(),
+            port: vpn_port.to_owned(),
+            public_key: public_key.to_owned(),
         };
 
         let register_req_res = match client
             .post(format!(
-                "http://{}/nodes/register",
-                &self_server.server_host
+                "https://{}:{}/nodes/register",
+                &server_host,
+                TUNNEL_SERVICE_PORT
             ))
-            .header("Tunnel-Authorization", &self_server.password)
+            .header("Tunnel-Authorization", &password)
             .json(&req_body)
             .send()
             .await
@@ -62,15 +94,17 @@ pub async fn register_self(self_server: &mut Node) {
             }
         };
 
-        self_server.self_id = json.assigned_id;
+        let mut node  = node_lock.write().unwrap();
+
+        node.self_id = json.assigned_id;
         println!(
             "node: self registration succeeded assigned_id={}",
-            self_server.self_id
+            node.self_id
         );
     } else {
         println!(
             "node: already registered assigned_id={}",
-            self_server.self_id
+            &node_lock.read().unwrap().self_id
         );
     }
 }

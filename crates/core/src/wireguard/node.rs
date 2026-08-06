@@ -10,10 +10,10 @@ use std::{fs, sync::RwLockWriteGuard};
 
 pub fn register_client(
     client_public_key: &str,
-    server: &mut RwLockWriteGuard<'_, Node>,
+    node: &mut RwLockWriteGuard<'_, Node>,
 ) -> Option<String> {
     let proposed_ip_part = (2u8..=254).find(|candidate| {
-        !server
+        !node
             .used_ips
             .iter()
             .any(|ip| ip.ends_with(&format!(".{candidate}")))
@@ -36,7 +36,7 @@ pub fn register_client(
         Err(()) => return None,
     };
 
-    server.used_ips.push(assigned_ip.clone());
+    node.used_ips.push(assigned_ip.clone());
 
     Some(assigned_ip)
 }

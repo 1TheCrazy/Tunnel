@@ -44,7 +44,7 @@ impl CliClientSave {
             }
         };
 
-        let nodes = match get_nodes(&server.host, &server.password).await {
+        let nodes = match get_nodes(server).await {
             Ok(nodes) => nodes,
             Err(err) => {
                 write_line!("Encountered an error while refreshing nodes: \n{}", err);

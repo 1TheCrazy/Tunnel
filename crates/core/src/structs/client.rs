@@ -7,6 +7,8 @@ pub struct ClientServer {
     pub host: String,
     pub name: String,
     pub password: String,
+    #[serde(default)]
+    pub host_fingerprint: String,
     pub nodes: Vec<ClientNode>,
 }
 

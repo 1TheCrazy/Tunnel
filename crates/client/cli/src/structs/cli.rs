@@ -51,6 +51,10 @@ pub enum ServerCommand {
         /// Password for the server
         #[arg(short, long)]
         password: Option<String>,
+
+        /// SHA-256 fingerprint of the server TLS certificate
+        #[arg(short = 'f', long)]
+        fingerprint: Option<String>,
     },
 
     /// Remove a server

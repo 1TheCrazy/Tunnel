@@ -5,6 +5,7 @@ const elements = {
   serverName: document.querySelector("#server-name"),
   serverHost: document.querySelector("#server-host"),
   serverPassword: document.querySelector("#server-password"),
+  serverFingerprint: document.querySelector("#server-fingerprint"),
   serverSelector: document.querySelector("#server-selector"),
   serverToggle: document.querySelector("#server-toggle"),
   openAddServer: document.querySelector("#open-add-server"),
@@ -689,9 +690,10 @@ elements.addServer.addEventListener("submit", (event) => {
   const name = elements.serverName.value.trim();
   const host = elements.serverHost.value.trim();
   const password = elements.serverPassword.value;
+  const fingerprint = elements.serverFingerprint.value.trim();
 
   runAction(
-    () => invoke("server_add", { name, host, password: password || null }),
+    () => invoke("server_add", { name, host, password: password || null, fingerprint: fingerprint || null }),
     "Successfully added the server",
   ).then(() => {
     elements.addServer.reset();

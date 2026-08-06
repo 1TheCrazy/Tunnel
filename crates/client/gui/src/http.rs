@@ -1,10 +1,10 @@
-use std::{error::Error, fmt};
+use std::{error::Error, fmt, sync::{Arc, Mutex}};
 
 use serde::Deserialize;
-use tunnel_core::structs::{
-    client::{ClientNode, ClientServer},
-    http::{DiscoverNodeRequest, DiscoverNodeResponse},
-    server::ServerNode,
+use tunnel_core::{
+    constants::TUNNEL_SERVICE_PORT,
+    net::pinned_tls::{create_pinned_client, get_fingerprint_option},
+    structs::{client::{ClientNode, ClientServer}, http::{DiscoverNodeRequest, DiscoverNodeResponse}, server::ServerNode},
 };
 
 use crate::state::NodeLocation;
@@ -20,15 +20,36 @@ impl fmt::Display for GuiError {
 
 impl Error for GuiError {}
 
-pub async fn get_nodes(host: &str, password: &str) -> Result<Vec<ClientNode>, Box<dyn Error>> {
-    let client = reqwest::Client::new();
+fn pinned_client(server: &ClientServer) -> Result<(reqwest::Client, Arc<Mutex<Option<String>>>), Box<dyn Error>> {
+    let captured_fingerprint = Arc::new(Mutex::new(None));
+    let callback_fingerprint = Arc::clone(&captured_fingerprint);
+    let client = create_pinned_client(
+        &get_fingerprint_option(&server.host_fingerprint),
+        &server.host,
+        Box::new(move |fingerprint| *callback_fingerprint.lock().unwrap() = Some(fingerprint)),
+    )?;
+    Ok((client, captured_fingerprint))
+}
+
+fn persist_initial_fingerprint(server: &mut ClientServer, captured: Arc<Mutex<Option<String>>>) {
+    if server.host_fingerprint.is_empty() {
+        if let Some(fingerprint) = captured.lock().unwrap().take() {
+            println!("client: trusted initial server certificate fingerprint={fingerprint}");
+            server.host_fingerprint = fingerprint;
+        }
+    }
+}
+
+pub async fn get_nodes(server: &mut ClientServer) -> Result<Vec<ClientNode>, Box<dyn Error>> {
+    let (client, captured_fingerprint) = pinned_client(server)?;
 
     let list_req = client
-        .get(format!("http://{}/nodes/list", host))
-        .header("Tunnel-Authorization", password)
+        .get(format!("https://{}:{}/nodes/list", server.host, TUNNEL_SERVICE_PORT))
+        .header("Tunnel-Authorization", &server.password)
         .send()
         .await
         .map_err(|_| "Error during http call".to_owned())?;
+    persist_initial_fingerprint(server, captured_fingerprint);
 
     if !list_req.status().is_success() {
         return Err(format!(
@@ -54,22 +75,24 @@ pub async fn get_nodes(host: &str, password: &str) -> Result<Vec<ClientNode>, Bo
 
 pub async fn discover_node(
     id: &str,
-    server: &ClientServer,
+    server: &mut ClientServer,
     public_key: &str,
 ) -> Result<DiscoverNodeResponse, GuiError> {
-    let client = reqwest::Client::new();
+    let (client, captured_fingerprint) = pinned_client(server)
+        .map_err(|error| GuiError(format!("Failed to configure HTTPS client: {error}")))?;
     let req_body = DiscoverNodeRequest {
         id: id.to_owned(),
         public_client_key: public_key.to_owned(),
     };
 
     let discover_req_res = client
-        .post(format!("http://{}/nodes/discover", server.host))
+        .post(format!("https://{}:{}/nodes/discover", server.host, TUNNEL_SERVICE_PORT))
         .header("Tunnel-Authorization", &server.password)
         .json(&req_body)
         .send()
         .await
         .map_err(|err| GuiError(format!("Server request error: {}", err)))?;
+    persist_initial_fingerprint(server, captured_fingerprint);
 
     if !discover_req_res.status().is_success() {
         let status = discover_req_res.status().to_string();

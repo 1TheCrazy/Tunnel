@@ -18,7 +18,8 @@ pub async fn server(command: ServerCommand) -> Result<(), ()> {
             name,
             host,
             password,
-        } => match server_add(&name, &host, password).await {
+            fingerprint,
+        } => match server_add(&name, &host, password, fingerprint).await {
             Ok(_) => {
                 write_line!("Successfully added the server");
                 return Ok(());
@@ -55,6 +56,7 @@ async fn server_add(
     name: &str,
     host: &str,
     password: Option<String>,
+    fingerprint: Option<String>,
 ) -> Result<(), Box<dyn Error>> {
     let mut state = get_mut_save();
 
@@ -75,17 +77,14 @@ async fn server_add(
 
     let pw = password.unwrap_or("".to_owned());
 
-    let node_list = match get_nodes(&host, &pw).await {
-        Ok(res) => res,
-        Err(err) => return Err(err),
-    };
-
-    let server = ClientServer {
+    let mut server = ClientServer {
         host: host.to_owned(),
         name: name.to_owned(),
         password: pw.to_owned(),
-        nodes: node_list.to_owned(),
+        host_fingerprint: fingerprint.unwrap_or_default(),
+        nodes: vec![],
     };
+    server.nodes = get_nodes(&mut server).await?;
 
     state.servers.push(server);
 

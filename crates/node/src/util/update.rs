@@ -1,53 +1,38 @@
 use std::time::Duration;
 
-use reqwest::Client;
-use tokio::time;
-use tunnel_core::structs::{http::UpdateNodeRequest, node::Node};
+use tokio::{sync::mpsc, time};
+use tunnel_core::structs::http::{NodeToServerMessage, UpdateNodeRequest};
 
-pub fn register_updating(period: Duration, node: Node) {
+use crate::net::state::SharedState;
+
+/// Starts the periodic node update task.
+///
+/// Messages are sent over a channel so the websocket owner remains the only
+/// task that writes to the socket.
+pub fn register_updating(
+    period: Duration,
+    node_state: SharedState,
+    sender: mpsc::Sender<NodeToServerMessage>,
+) {
     tokio::spawn(async move {
         let mut interval = time::interval(period);
 
         loop {
             interval.tick().await;
-            update_node(&node).await;
+
+            let id = node_state.read().unwrap().self_id.clone();
+            if id.is_empty() {
+                continue;
+            }
+
+            if sender
+                .send(NodeToServerMessage::Update(UpdateNodeRequest { id }))
+                .await
+                .is_err()
+            {
+                println!("node: update scheduler stopped because websocket closed");
+                break;
+            }
         }
     });
-}
-
-async fn update_node(node: &Node) {
-    let client = Client::new();
-    let req_body = UpdateNodeRequest {
-        id: node.self_id.to_owned(),
-    };
-
-    let update_req_res = match client
-        .post(format!("http://{}/nodes/update", &node.server_host))
-        .header("Tunnel-Authorization", &node.password)
-        .json(&req_body)
-        .send()
-        .await
-    {
-        Ok(res) => res,
-        Err(err) => {
-            println!("node: self update request failed error={}", err);
-            return;
-        }
-    };
-
-    if !update_req_res.status().is_success() {
-        let status = update_req_res.status();
-        let text = match update_req_res.text().await {
-            Ok(text) => text,
-            Err(_) => "".to_owned(),
-        };
-
-        println!(
-            "node: self update failed status={} response_body={}",
-            status, text
-        );
-        return;
-    }
-
-    println!("node: updated self");
 }

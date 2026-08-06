@@ -132,7 +132,7 @@ To see information about the CLI and each subcommand, use `tunnel <command> --he
 
 The flow for using the CLI is:
 
-1. Add a server: `tunnel server add <NAME> <HOST> -p <PASSWORD>`
+1. Add a server: `tunnel server add <NAME> <HOST> [-p <PASSWORD>] [-f <FINGERPRINT>]`
 2. Set a server as active: `tunnel server set <NAME>`
 3. List the nodes available on the active server: `tunnel list-nodes`
 4. Connect to a node: `tunnel connect <ID>`
@@ -145,6 +145,8 @@ tunnel server set "Creative Name"
 tunnel -r list-nodes
 tunnel -r connect PcSlIATNqUyiPUhwf_LoXQ # ID obtained from `tunnel list-nodes`
 ```
+
+Use `-f` / `--fingerprint` to pin the server's SHA-256 TLS certificate fingerprint when adding it. If omitted, Tunnel keeps the existing behavior of trusting and saving the fingerprint from the first successful connection.
 
 It's recommended to use the `-r` (`--refresh`) flag with every `tunnel connect`, since node IPs may have been updated.
 

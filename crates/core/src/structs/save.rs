@@ -7,6 +7,7 @@ pub struct NodeSave {
     pub self_id: String,
     pub private_key: String,
     pub public_key: String,
+    pub host_fingerprint: String,
 }
 
 impl Default for NodeSave {
@@ -18,6 +19,7 @@ impl Default for NodeSave {
             self_id: "".to_owned(),
             public_key: keys.public,
             private_key: keys.private,
+            host_fingerprint: "".to_owned()
         }
     }
 }

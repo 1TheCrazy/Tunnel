@@ -10,4 +10,6 @@ pub struct Node {
     pub vpn_port: String,
     pub server_host: String,
     pub update_period: Duration,
+    pub blindly_trust_host: bool,
+    pub host_fingerprint: String
 }

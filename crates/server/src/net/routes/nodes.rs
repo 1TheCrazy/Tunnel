@@ -1,19 +1,21 @@
 use std::net::SocketAddr;
 
-use crate::http::state::AppState;
+use crate::net::state::AppState;
 use axum::{
     Router,
-    extract::{ConnectInfo, Json, State},
+    extract::{ConnectInfo, Json, State, WebSocketUpgrade, ws::{Message, WebSocket}},
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
     routing::{get, post},
 };
+use futures_util::{SinkExt, StreamExt};
+use tokio::{sync::mpsc, time::{timeout, Duration}};
 use tunnel_core::{
-    constants::TUNNEL_SERVICE_PORT,
     structs::{
         http::{
-            CreateClientOnNodeRequest, CreateClientOnNodeRespone, CreateNodeRequest,
-            CreateNodeResponse, DiscoverNodeRequest, DiscoverNodeResponse, UpdateNodeRequest,
+            CreateClientOnNodeRequest, CreateNodeRequest,
+            CreateNodeResponse, DiscoverNodeRequest, DiscoverNodeResponse, NodeToServerMessage,
+            ServerToNodeMessage, UpdateNodeRequest,
         },
         server::ServerNode,
     },
@@ -25,6 +27,7 @@ pub fn router() -> Router<AppState> {
         .route("/list", get(list))
         .route("/register", post(register))
         .route("/discover", post(discover))
+        .route("/websocket", get(websocket))
         .route("/update", post(update))
 }
 
@@ -121,11 +124,10 @@ async fn discover(
         addr, body.id
     );
 
-    let (password, target_ip) = {
+    let node_id = {
         let server = state.server.read().unwrap();
-        let password = server.password.clone();
 
-        if !authorization::is_request_authorized(&password, &headers) {
+        if !authorization::is_request_authorized(&server.password, &headers) {
             println!(
                 "server: request POST /nodes/discover from {} -> 401 unauthorized",
                 addr
@@ -133,8 +135,8 @@ async fn discover(
             return (StatusCode::UNAUTHORIZED, "Invalid Credentials").into_response();
         }
 
-        let target_ip = match server.nodes.iter().find(|node| node.id == body.id) {
-            Some(node) => node.ip.clone(),
+        match server.nodes.iter().find(|node| node.id == body.id) {
+            Some(node) => node.id.clone(),
             None => {
                 println!(
                     "server: request POST /nodes/discover from {} -> 400 node_id_not_found={}",
@@ -142,77 +144,136 @@ async fn discover(
                 );
                 return (StatusCode::BAD_REQUEST, "Node id not found").into_response();
             }
-        };
-
-        (password, target_ip)
+        }
     };
 
-    let client = state.http_client;
-    let target_url = format!("http://{}:{}/discover", target_ip, TUNNEL_SERVICE_PORT);
-
-    println!(
-        "server: forwarding discover request node_id={} target_url={}",
-        body.id, target_url
-    );
-
-    let req_body = CreateClientOnNodeRequest {
-        public_client_key: body.public_client_key,
+    let sender = match state.node_connections.read().unwrap().get(&node_id).cloned() {
+        Some(sender) => sender,
+        None => return (StatusCode::SERVICE_UNAVAILABLE, "Node is not connected").into_response(),
     };
 
-    let creation_req_res = match client
-        .post(target_url)
-        .header("Tunnel-Authorization", password)
-        .json(&req_body)
-        .send()
-        .await
-    {
-        Ok(res) => res,
-        Err(err) => {
-            println!(
-                "server: request POST /nodes/discover from {} -> 500 forward_error={}",
-                addr, err
-            );
+    let request_id = get_128_bit_random();
+    let (response_sender, response_receiver) = tokio::sync::oneshot::channel();
+    state.pending_discoveries.write().unwrap().insert(request_id.clone(), response_sender);
+
+    let message = ServerToNodeMessage::DiscoverRequest {
+        request_id: request_id.clone(),
+        request: CreateClientOnNodeRequest { public_client_key: body.public_client_key },
+    };
+    let text = match serde_json::to_string(&message) {
+        Ok(text) => text,
+        Err(error) => {
+            state.pending_discoveries.write().unwrap().remove(&request_id);
+            println!("server: failed to serialize discover request error={error}");
             return (StatusCode::INTERNAL_SERVER_ERROR, "Internal Error").into_response();
         }
     };
 
-    if creation_req_res.status() != StatusCode::OK {
-        println!(
-            "server: request POST /nodes/discover from {} -> 500 node_status={}",
-            addr,
-            creation_req_res.status()
-        );
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Node refused to discover",
-        )
-            .into_response();
+    if sender.send(Message::Text(text.into())).await.is_err() {
+        state.pending_discoveries.write().unwrap().remove(&request_id);
+        return (StatusCode::SERVICE_UNAVAILABLE, "Node is not connected").into_response();
     }
 
-    let res_json: CreateClientOnNodeRespone = match creation_req_res.json().await {
-        Ok(body) => body,
-        Err(err) => {
-            println!(
-                "server: request POST /nodes/discover from {} -> 500 node_response_decode_error={}",
-                addr, err
-            );
-            return (StatusCode::INTERNAL_SERVER_ERROR, "Internal Error").into_response();
+    let response = match timeout(Duration::from_secs(15), response_receiver).await {
+        Ok(Ok(response)) => response,
+        Ok(Err(_)) => return (StatusCode::BAD_GATEWAY, "Node connection closed").into_response(),
+        Err(_) => {
+            state.pending_discoveries.write().unwrap().remove(&request_id);
+            return (StatusCode::GATEWAY_TIMEOUT, "Node response timed out").into_response();
         }
     };
+
+    if !response.success {
+        return (StatusCode::CONFLICT, "Node refused client registration").into_response();
+    }
 
     println!(
         "server: request POST /nodes/discover from {} -> 200 node_id={} assigned_vpn_ip={}",
-        addr, body.id, res_json.vpn_network_ip
+        addr, body.id, response.vpn_network_ip
     );
 
     (
         StatusCode::OK,
         Json(DiscoverNodeResponse {
             success: true,
-            assigned_vpn_ip: res_json.vpn_network_ip.to_owned(),
+            assigned_vpn_ip: response.vpn_network_ip,
         }),
     )
         .into_response()
+}
+
+async fn websocket(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    websocket: WebSocketUpgrade,
+) -> impl IntoResponse {
+    if !authorization::is_request_authorized(&state.server.read().unwrap().password, &headers) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+
+    websocket.on_upgrade(move |socket| handle_websocket(socket, state, addr))
+}
+
+async fn handle_websocket(socket: WebSocket, state: AppState, addr: SocketAddr) {
+    let (mut sink, mut stream) = socket.split();
+    let (sender, mut receiver) = mpsc::channel(16);
+    let writer = tokio::spawn(async move {
+        while let Some(message) = receiver.recv().await {
+            if sink.send(message).await.is_err() { break; }
+        }
+    });
+
+    let node_id = match stream.next().await {
+        Some(Ok(Message::Text(text))) => match serde_json::from_str::<NodeToServerMessage>(&text) {
+            Ok(NodeToServerMessage::Connected { node_id }) => node_id,
+            _ => return,
+        },
+        _ => return,
+    };
+
+    if !state.server.read().unwrap().nodes.iter().any(|node| node.id == node_id) {
+        return;
+    }
+    state.node_connections.write().unwrap().insert(node_id.clone(), sender.clone());
+    println!("server: node websocket connected node_id={} addr={}", node_id, addr);
+
+    while let Some(result) = stream.next().await {
+        match result {
+            Ok(Message::Text(text)) => match serde_json::from_str::<NodeToServerMessage>(&text) {
+                Ok(NodeToServerMessage::Update(update)) if update.id == node_id => {
+                    if let Some(node) = state.server.write().unwrap().nodes.iter_mut().find(|node| node.id == node_id) {
+                        node.ip = addr.ip().to_string();
+                    }
+                }
+                Ok(NodeToServerMessage::DiscoverResponse { request_id, response }) => {
+                    if let Some(waiter) = state.pending_discoveries.write().unwrap().remove(&request_id) {
+                        let _ = waiter.send(response);
+                    }
+                }
+                Ok(_) => println!("server: rejected websocket message from node_id={}", node_id),
+                Err(error) => println!("server: invalid node websocket payload error={error}"),
+            },
+            Ok(Message::Ping(data)) => {
+                if sender.send(Message::Pong(data)).await.is_err() { break; }
+            }
+            Ok(Message::Close(_)) | Err(_) => break,
+            _ => {}
+        }
+    }
+
+    {
+        let mut connections = state.node_connections.write().unwrap();
+        if connections
+            .get(&node_id)
+            .is_some_and(|current| current.same_channel(&sender))
+        {
+            connections.remove(&node_id);
+        }
+    }
+    drop(sender);
+    let _ = writer.await;
+    println!("server: node websocket disconnected node_id={}", node_id);
 }
 
 async fn update(

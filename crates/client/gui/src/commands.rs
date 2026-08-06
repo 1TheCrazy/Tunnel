@@ -240,7 +240,7 @@ pub async fn refresh() -> Result<(), String> {
         "There was no selected server. To refresh nodes, select a server 'server set <NAME>' or see '--help'".to_owned()
     })?;
 
-    let nodes = get_nodes(&server.host, &server.password)
+    let nodes = get_nodes(server)
         .await
         .map_err(|err| format!("Encountered an error while refreshing nodes: \n{}", err))?;
 
@@ -271,6 +271,7 @@ pub async fn server_add(
     name: String,
     host: String,
     password: Option<String>,
+    fingerprint: Option<String>,
 ) -> Result<(), String> {
     let mut state = get_mut_save();
 
@@ -286,16 +287,17 @@ pub async fn server_add(
     }
 
     let pw = password.unwrap_or_default();
-    let node_list = get_nodes(&host, &pw)
-        .await
-        .map_err(|err| format!("Wasn't able to add the server: \n{}", err))?;
-
-    state.servers.push(ClientServer {
+    let mut server = ClientServer {
         host,
         name,
         password: pw,
-        nodes: node_list,
-    });
+        host_fingerprint: fingerprint.unwrap_or_default(),
+        nodes: vec![],
+    };
+    server.nodes = get_nodes(&mut server)
+        .await
+        .map_err(|err| format!("Wasn't able to add the server: \n{}", err))?;
+    state.servers.push(server);
 
     if state.active_server_index == -1 {
         state.active_server_index = state.servers.len() as i32 - 1;

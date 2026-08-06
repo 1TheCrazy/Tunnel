@@ -1,7 +1,7 @@
-mod http;
+mod net;
 mod util;
 
-use crate::http::{http_server::HttpServer, state::SharedServer};
+use crate::net::{state::SharedState, websocket::WebSocketProvider};
 use tunnel_core::wireguard::{
     common::{activate_service, install_service_if_not_already},
     install,
@@ -21,10 +21,10 @@ async fn main() {
         )
     }
 
-    let http_server = SharedServer::from_config();
+    let state = SharedState::from_config();
 
     {
-        let node = http_server.read().unwrap();
+        let node = state.read().unwrap();
 
         match create_default_node_conf_if_not_exist(&node.private_key, &node.vpn_port) {
             Ok(()) => {}
@@ -47,11 +47,19 @@ async fn main() {
         }
     } // Drop Lock
 
-    // Start server
-    http_server.start().await;
+    tokio::select! {
+        _ = state.connect() => {
+            println!("node: websocket connection ended");
+        }
+        result = tokio::signal::ctrl_c() => {
+            match result {
+                Ok(()) => println!("node: shutdown signal received"),
+                Err(error) => println!("node: failed to listen for shutdown signal error={error}"),
+            }
+        }
+    }
 
-    // Cleanup after CTRL+C
-    match http_server.cleanup() {
+    match state.cleanup() {
         Ok(()) => println!("Server successfully stoppped!"),
         Err(err) => println!("Error during server cleanup: {}", err),
     }
