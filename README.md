@@ -109,8 +109,20 @@ self_hostname = "123.123.123.123" # or yourdomain.com, usually matches the node.
 
 ### Installing
 > [!IMPORTANT]
-> Since the software (Node/Server/Client) runs as binaries, the most common architectures are provided in GitHub releases.
-> These are: `x86_64`, `aarch64` (ARM 64-bit), and `armv7` (ARM 32-bit).
+> Since the software (Node/Server/Client) runs as binaries, the most common architectures are provided in GitHub releases.<br>
+> Here's a quick general overview:
+> | |Windows|Linux|
+> |---|---|---|
+> |`x86_64`|✅|✅|
+> |`aarch64`|✅|✅|
+> |`armv7`|❌|✅|
+>
+> | |Windows|Linux|
+> |---|---|---|
+> |`x86_64`|Server/Node/CLI/GUI|Server/Node/CLI/GUI|
+> |`aarch64`|Server/Node/CLI/GUI|Server/Node/CLI/GUI|
+> |`armv7`|-|Server/Node/CLI/GUI|
+> 
 > If you require more exotic architectures, you may need to compile them yourself by cloning this repo and compiling them locally.
 
 > [!NOTE]
