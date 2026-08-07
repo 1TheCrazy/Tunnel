@@ -197,7 +197,7 @@ jobs:
           pattern: release-assets-*
           path: downloaded-artifacts
 
-      - name: Select installer packages only
+      - name: Select release files only
         shell: bash
         run: |
           mkdir installers
@@ -206,7 +206,10 @@ jobs:
             -name '*-setup.exe' -o \
             -name '*.deb' -o \
             -name '*.rpm' -o \
-            -name '*.AppImage' \
+            -name '*.AppImage' -o \
+            -name 'tunnel-client-cli-*' -o \
+            -name 'tunnel-node-*' -o \
+            -name 'tunnel-server-*' \
           \) -exec cp {} installers/ \;
           test -n "$(find installers -maxdepth 1 -type f -print -quit)"
 
