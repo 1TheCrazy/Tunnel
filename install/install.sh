@@ -26,8 +26,7 @@ case "$INSTALL_KIND" in
         CONFIG_NAME='server.toml'
         ;;
     --cli)
-        # The published CLI asset intentionally uses this spelling.
-        ASSET_NAME='tunel_client_cli'
+        ASSET_NAME='tunnel_client_cli'
         BINARY_NAME='tunnel'
         CONFIG_NAME=''
         ;;

@@ -22,8 +22,7 @@ switch ($installKind) {
         break
     }
     '--cli' {
-        # The published CLI asset intentionally uses this spelling.
-        $assetName = 'tunel_client_cli'
+        $assetName = 'tunnel_client_cli'
         $binaryName = 'tunnel.exe'
         $configName = $null
         break
