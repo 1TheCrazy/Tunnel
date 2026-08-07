@@ -45,7 +45,8 @@ case "$(uname -m)" in
     x86_64|amd64) ARCHITECTURE='x86_64' ;;
     aarch64|arm64) ARCHITECTURE='aarch64' ;;
     armv7l|armv7) ARCHITECTURE='armv7' ;;
-    *) fail "unsupported CPU architecture: $(uname -m). Supported: x86_64, aarch64, armv7." ;;
+    armv6l|armv6) ARCHITECTURE='armv6' ;;
+    *) fail "unsupported CPU architecture: $(uname -m). Supported: x86_64, aarch64, armv7, armv6." ;;
 esac
 
 install_dependencies() {

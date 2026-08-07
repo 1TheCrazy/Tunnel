@@ -8,3 +8,6 @@ dockerfile = ".github/cross/Dockerfile"
 
 [target.armv7-unknown-linux-gnueabihf]
 dockerfile = ".github/cross/Dockerfile"
+
+[target.arm-unknown-linux-gnueabihf]
+dockerfile = ".github/cross/Dockerfile"

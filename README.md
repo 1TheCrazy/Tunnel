@@ -116,12 +116,14 @@ self_hostname = "123.123.123.123" # or yourdomain.com, usually matches the node.
 > |`x86_64`|✅|✅|
 > |`aarch64`|✅|✅|
 > |`armv7`|❌|✅|
+> |`armv6`|❌|⚠️|
 >
 > | |Windows|Linux|
 > |---|---|---|
 > |`x86_64`|Server/Node/CLI/GUI|Server/Node/CLI/GUI|
 > |`aarch64`|Server/Node/CLI/GUI|Server/Node/CLI/GUI|
 > |`armv7`|-|Server/Node/CLI/GUI|
+> |`armv6`|-|Server/Node/CLI|
 > 
 > If you require more exotic architectures, you may need to compile them yourself by cloning this repo and compiling them locally.
 
