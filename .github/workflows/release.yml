@@ -95,7 +95,15 @@ jobs:
         shell: bash
         run: |
           if [ '${{ matrix.platform }}' = 'linux' ]; then
-            npx --no-install tauri build --runner cross --target '${{ matrix.target }}'
+            # Tauri's ARM AppImage tool (linuxdeploy) must run on the target
+            # architecture. Cross compiles the app, but cannot execute that
+            # ARM binary on this x64 runner. Debian and RPM installers do not
+            # have that constraint, so build them for every Linux target.
+            if [ '${{ matrix.arch }}' = 'x86_64' ]; then
+              npx --no-install tauri build --runner cross --target '${{ matrix.target }}'
+            else
+              npx --no-install tauri build --runner cross --target '${{ matrix.target }}' --bundles deb,rpm
+            fi
           else
             npx --no-install tauri build --target '${{ matrix.target }}'
           fi
