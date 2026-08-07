@@ -125,9 +125,13 @@ jobs:
           PLATFORM: ${{ matrix.platform }}
           ARCH: ${{ matrix.arch }}
           TARGET: ${{ matrix.target }}
+          BINARY_SUFFIX: ${{ matrix.binary_suffix }}
         run: |
           asset_directory="release-assets/${PLATFORM}-${ARCH}"
           mkdir -p "$asset_directory"
+          cp "target/${TARGET}/release/tunnel_client_cli${BINARY_SUFFIX}" "$asset_directory/tunnel-client-cli-${PLATFORM}-${ARCH}${BINARY_SUFFIX}"
+          cp "target/${TARGET}/release/node${BINARY_SUFFIX}" "$asset_directory/tunnel-node-${PLATFORM}-${ARCH}${BINARY_SUFFIX}"
+          cp "target/${TARGET}/release/server${BINARY_SUFFIX}" "$asset_directory/tunnel-server-${PLATFORM}-${ARCH}${BINARY_SUFFIX}"
           while IFS= read -r -d '' installer; do
             installer_name=$(basename "$installer")
             cp "$installer" "$asset_directory/tunnel-gui-${PLATFORM}-${ARCH}-${installer_name}"
@@ -136,7 +140,10 @@ jobs:
             -name '*-setup.exe' -o \
             -name '*.deb' -o \
             -name '*.rpm' -o \
-            -name '*.AppImage' \
+            -name '*.AppImage' -o \
+            -name 'tunnel-client-cli-*' -o \
+            -name 'tunnel-node-*' -o \
+            -name 'tunnel-server-*' \
           \) -print0)
 
       - name: Upload release assets
@@ -215,7 +222,7 @@ jobs:
           fi
           while IFS= read -r asset; do
             case "$asset" in
-              *.msi|*-setup.exe|*.deb|*.rpm|*.AppImage) ;;
+              *.msi|*-setup.exe|*.deb|*.rpm|*.AppImage|tunnel-client-cli-*|tunnel-node-*|tunnel-server-*) ;;
               *) gh release delete-asset "$TAG" "$asset" --yes ;;
             esac
           done < <(gh release view "$TAG" --json assets --jq '.assets[].name')
