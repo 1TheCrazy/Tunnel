@@ -4,6 +4,16 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Workflow run ID containing the successful build artifacts
+        required: true
+        type: string
+      tag:
+        description: Existing tag to publish or update
+        required: true
+        type: string
 
 # Build jobs only need to read the source. The publish job explicitly receives
 # permission to create the release and upload its assets.
@@ -16,6 +26,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name == 'push'
     name: ${{ matrix.platform }} / ${{ matrix.arch }}
     runs-on: ${{ fromJSON(matrix.runner) }}
     strategy:
@@ -114,17 +125,19 @@ jobs:
           PLATFORM: ${{ matrix.platform }}
           ARCH: ${{ matrix.arch }}
           TARGET: ${{ matrix.target }}
-          BINARY_SUFFIX: ${{ matrix.binary_suffix }}
         run: |
           asset_directory="release-assets/${PLATFORM}-${ARCH}"
           mkdir -p "$asset_directory"
-          cp "target/${TARGET}/release/tunnel_client_cli${BINARY_SUFFIX}" "$asset_directory/tunnel-client-cli-${PLATFORM}-${ARCH}${BINARY_SUFFIX}"
-          cp "target/${TARGET}/release/node${BINARY_SUFFIX}" "$asset_directory/tunnel-node-${PLATFORM}-${ARCH}${BINARY_SUFFIX}"
-          cp "target/${TARGET}/release/server${BINARY_SUFFIX}" "$asset_directory/tunnel-server-${PLATFORM}-${ARCH}${BINARY_SUFFIX}"
           while IFS= read -r -d '' installer; do
             installer_name=$(basename "$installer")
             cp "$installer" "$asset_directory/tunnel-gui-${PLATFORM}-${ARCH}-${installer_name}"
-          done < <(find "target/${TARGET}/release/bundle" -type f -print0)
+          done < <(find "target/${TARGET}/release/bundle" -type f \( \
+            -name '*.msi' -o \
+            -name '*-setup.exe' -o \
+            -name '*.deb' -o \
+            -name '*.rpm' -o \
+            -name '*.AppImage' \
+          \) -print0)
 
       - name: Upload release assets
         uses: actions/upload-artifact@v4
@@ -134,6 +147,7 @@ jobs:
           if-no-files-found: error
 
   publish:
+    if: github.event_name == 'push'
     name: Publish GitHub release
     needs: build
     runs-on: ubuntu-latest
@@ -157,3 +171,52 @@ jobs:
           gh release create "$TAG" release-assets/*/* \
             --title "$TAG" \
             --generate-notes
+
+  republish:
+    name: Publish existing build artifacts
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+
+    steps:
+      - name: Download installers from the previous run
+        uses: actions/download-artifact@v5
+        with:
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          pattern: release-assets-*
+          path: downloaded-artifacts
+
+      - name: Select installer packages only
+        shell: bash
+        run: |
+          mkdir installers
+          find downloaded-artifacts -type f \( \
+            -name '*.msi' -o \
+            -name '*-setup.exe' -o \
+            -name '*.deb' -o \
+            -name '*.rpm' -o \
+            -name '*.AppImage' \
+          \) -exec cp {} installers/ \;
+          test -n "$(find installers -maxdepth 1 -type f -print -quit)"
+
+      - name: Create or update the release with installers
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --title "$TAG" --generate-notes
+          fi
+          while IFS= read -r asset; do
+            case "$asset" in
+              *.msi|*-setup.exe|*.deb|*.rpm|*.AppImage) ;;
+              *) gh release delete-asset "$TAG" "$asset" --yes ;;
+            esac
+          done < <(gh release view "$TAG" --json assets --jq '.assets[].name')
+          gh release upload "$TAG" installers/* --clobber
