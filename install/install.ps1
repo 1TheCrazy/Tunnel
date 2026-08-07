@@ -47,11 +47,10 @@ switch ($machineArchitecture.ToUpperInvariant()) {
         break
     }
     'ARM' {
-        $architecture = 'armv7'
-        break
+        throw 'Windows on 32-bit ARM (ARMv7) is not supported. Tunnel releases support Windows x86_64 and ARM64 only.'
     }
     default {
-        throw "Unsupported CPU architecture: $machineArchitecture. Supported: x86_64, aarch64, armv7."
+        throw "Unsupported CPU architecture: $machineArchitecture. Supported on Windows: x86_64, aarch64."
     }
 }
 
@@ -92,7 +91,12 @@ else {
     $destination = Join-Path (Get-Location) $binaryName
 }
 
-$downloadUrl = "https://github.com/$repository/releases/latest/download/$assetName`_$architecture.exe"
+$releaseAsset = switch ($installKind) {
+    '--node' { "tunnel-node-windows-$architecture.exe" }
+    '--server' { "tunnel-server-windows-$architecture.exe" }
+    '--cli' { "tunnel-client-cli-windows-$architecture.exe" }
+}
+$downloadUrl = "https://github.com/$repository/releases/latest/download/$releaseAsset"
 $temporaryBinary = [System.IO.Path]::GetTempFileName()
 try {
     Invoke-WebRequest -Uri $downloadUrl -OutFile $temporaryBinary

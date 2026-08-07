@@ -16,17 +16,17 @@ INSTALL_KIND=$1
 
 case "$INSTALL_KIND" in
     --node)
-        ASSET_NAME='tunnel_node'
+        ASSET_NAME='tunnel-node'
         BINARY_NAME='node'
         CONFIG_NAME='node.toml'
         ;;
     --server)
-        ASSET_NAME='tunnel_server'
+        ASSET_NAME='tunnel-server'
         BINARY_NAME='server'
         CONFIG_NAME='server.toml'
         ;;
     --cli)
-        ASSET_NAME='tunnel_client_cli'
+        ASSET_NAME='tunnel-client-cli'
         BINARY_NAME='tunnel'
         CONFIG_NAME=''
         ;;
@@ -102,7 +102,7 @@ fi
 
 install_dependencies
 
-asset_url="https://github.com/$REPOSITORY/releases/latest/download/${ASSET_NAME}_$ARCHITECTURE"
+asset_url="https://github.com/$REPOSITORY/releases/latest/download/${ASSET_NAME}-linux-$ARCHITECTURE"
 if [ "$INSTALL_KIND" = '--cli' ]; then
     DESTINATION='/usr/local/bin/tunnel'
 else

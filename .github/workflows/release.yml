@@ -1,0 +1,151 @@
+name: Build and release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+# Build jobs only need to read the source. The publish job explicitly receives
+# permission to create the release and upload its assets.
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: ${{ matrix.platform }} / ${{ matrix.arch }}
+    runs-on: ${{ fromJSON(matrix.runner) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            arch: x86_64
+            target: x86_64-pc-windows-msvc
+            runner: '["windows-latest"]'
+            binary_suffix: .exe
+          - platform: windows
+            arch: aarch64
+            target: aarch64-pc-windows-msvc
+            runner: '["windows-11-arm"]'
+            binary_suffix: .exe
+          - platform: linux
+            arch: x86_64
+            target: x86_64-unknown-linux-gnu
+            runner: '["ubuntu-latest"]'
+            binary_suffix: ''
+          - platform: linux
+            arch: aarch64
+            target: aarch64-unknown-linux-gnu
+            runner: '["ubuntu-latest"]'
+            binary_suffix: ''
+          - platform: linux
+            arch: armv7
+            target: armv7-unknown-linux-gnueabihf
+            runner: '["ubuntu-latest"]'
+            binary_suffix: ''
+
+    steps:
+      - name: Check out the tagged source
+        uses: actions/checkout@v6
+
+      - name: Install Linux GUI prerequisites
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            patchelf
+
+      - name: Install Cross
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: cargo install cross --git https://github.com/cross-rs/cross --locked
+
+      - name: Install Rust target
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add '${{ matrix.target }}'
+
+      - name: Build CLI, node, and server
+        shell: bash
+        run: |
+          if [ '${{ matrix.platform }}' = 'linux' ]; then
+            cross build --locked --release --target '${{ matrix.target }}' -p tunnel_client_cli -p node -p server
+          else
+            cargo build --locked --release --target '${{ matrix.target }}' -p tunnel_client_cli -p node -p server
+          fi
+
+      - name: Install the GUI build tool
+        working-directory: crates/client/gui
+        shell: bash
+        run: npm install --no-package-lock
+
+      - name: Build GUI installers
+        working-directory: crates/client/gui
+        shell: bash
+        run: |
+          if [ '${{ matrix.platform }}' = 'linux' ]; then
+            npx --no-install tauri build --runner cross --target '${{ matrix.target }}'
+          else
+            npx --no-install tauri build --target '${{ matrix.target }}'
+          fi
+
+      - name: Collect release assets
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          ARCH: ${{ matrix.arch }}
+          TARGET: ${{ matrix.target }}
+          BINARY_SUFFIX: ${{ matrix.binary_suffix }}
+        run: |
+          asset_directory="release-assets/${PLATFORM}-${ARCH}"
+          mkdir -p "$asset_directory"
+          cp "target/${TARGET}/release/tunnel_client_cli${BINARY_SUFFIX}" "$asset_directory/tunnel-client-cli-${PLATFORM}-${ARCH}${BINARY_SUFFIX}"
+          cp "target/${TARGET}/release/node${BINARY_SUFFIX}" "$asset_directory/tunnel-node-${PLATFORM}-${ARCH}${BINARY_SUFFIX}"
+          cp "target/${TARGET}/release/server${BINARY_SUFFIX}" "$asset_directory/tunnel-server-${PLATFORM}-${ARCH}${BINARY_SUFFIX}"
+          while IFS= read -r -d '' installer; do
+            installer_name=$(basename "$installer")
+            cp "$installer" "$asset_directory/tunnel-gui-${PLATFORM}-${ARCH}-${installer_name}"
+          done < <(find "target/${TARGET}/release/bundle" -type f -print0)
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets-${{ matrix.platform }}-${{ matrix.arch }}
+          path: release-assets/${{ matrix.platform }}-${{ matrix.arch }}/
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all release assets
+        uses: actions/download-artifact@v5
+        with:
+          pattern: release-assets-*
+          path: release-assets
+
+      - name: Create release and upload assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" release-assets/*/* \
+            --verify-tag \
+            --title "$TAG" \
+            --generate-notes
