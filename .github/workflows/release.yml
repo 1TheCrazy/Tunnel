@@ -154,6 +154,5 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           gh release create "$TAG" release-assets/*/* \
-            --verify-tag \
             --title "$TAG" \
             --generate-notes
