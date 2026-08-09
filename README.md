@@ -16,6 +16,7 @@ Tunnel is a lightweight WireGuard-based private VPN platform for managing and co
 - [Features](#features)
 - [Installation Guide](#installation-guide)
 - [CLI Guide](#cli)
+- [GUI Guide](#gui)
 - [How it works](#how-it-works)
 - [Troubleshooting](#troubleshooting)
 - [Work In Progress](#wip)
@@ -127,9 +128,6 @@ self_hostname = "123.123.123.123" # or yourdomain.com, usually matches the node.
 > 
 > If you require more exotic architectures, you may need to compile them yourself by cloning this repo and compiling them locally.
 
-> [!NOTE]
-> To install the installer-based client GUI, refer to the GitHub Releases page, where you'll find the installer for your system.
-
 The installation of a Node/Server/CLI boils down to the following steps:
 
 1. Choose a target directory, e.g. `/home/user/tunnel` or `C:\Users\User\Desktop\Tunnel`
@@ -172,7 +170,24 @@ Use `-f` / `--fingerprint` to pin the server's SHA-256 TLS certificate fingerpri
 
 It's recommended to use the `-r` (`--refresh`) flag with every `tunnel connect`, since node IPs may have been updated.
 
-The GUI provides the same functionality as the CLI, wrapped in a clean and modern *Tauri*-based application. When adding a server, its password and certificate fingerprint are optional.
+## GUI
+
+Tunnel also provides a graphical client, built with *Tauri*, for managing servers and connecting to nodes without using the command line.
+
+### Install
+
+Download the GUI installer/package for your operating system and architecture from the [GitHub Releases page](https://github.com/1TheCrazy/Tunnel/releases). GUI packages are available for Windows and Linux on every supported architecture except Linux `armv6`.
+
+WireGuard must be installed before connecting. On Windows, install the [official WireGuard client](https://www.wireguard.com/install/); on Linux, install your distribution's `wireguard` package.
+
+> [!IMPORTANT]
+> Tunnel needs administrator rights to access WireGuard. On Windows, the GUI requests them through a UAC prompt at startup. On Linux, it runs WireGuard commands with `sudo`, but cannot show an equivalent graphical prompt. Before starting the GUI, authorize `sudo` in a terminal with `sudo -v`; alternatively, configure a suitably restricted `sudoers` rule for the GUI's WireGuard commands.
+
+### Views
+
+- **Node list:** Shows the active server's nodes, including their names, IDs, IP addresses, discovery status, and connection controls.
+- **Map:** Displays the known geographic locations of available nodes.
+- **Network monitor:** Shows live upload and download rates and total traffic while a tunnel is connected.
 
 ## How it works
 
