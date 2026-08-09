@@ -1,13 +1,27 @@
 use std::process::Command;
 
-#[cfg(target_os = "windows")]
-const BIN: &str = r"C:\Program Files\WireGuard\wg.exe";
-
-#[cfg(target_os = "linux")]
-const BIN: &str = r"wg";
-
 pub fn is_wireguard_available() -> bool {
-    Command::new(BIN).arg("--version").output().is_ok()
+    let ok: bool;
+
+    #[cfg(target_os = "windows")] {
+        use crate::util::terminal::WINDOWS_INVISIBLE_TERMIAL;
+        use std::os::windows::process::CommandExt;
+
+        ok = Command::new(r"C:\Program Files\WireGuard\wg.exe")
+            .creation_flags(WINDOWS_INVISIBLE_TERMIAL)
+            .arg("--version")
+            .output()
+            .is_ok();
+    };
+
+    #[cfg(target_os = "linux")] {
+        ok = Command::new("wg")
+            .arg("--version")
+            .output()
+            .is_ok();
+    }
+
+    ok
 }
 
 /*

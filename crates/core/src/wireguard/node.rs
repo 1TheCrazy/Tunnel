@@ -7,6 +7,10 @@ use crate::{
 };
 use std::process::Command;
 use std::{fs, sync::RwLockWriteGuard};
+#[cfg(target_os = "windows")]
+use crate::util::terminal::WINDOWS_INVISIBLE_TERMIAL;
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 
 pub fn register_client(
     client_public_key: &str,
@@ -121,6 +125,7 @@ pub fn install_nat() -> Result<(), ()> {
     #[cfg(target_os = "windows")]
     {
         match Command::new("powershell")
+            .creation_flags(WINDOWS_INVISIBLE_TERMIAL)
             .args([
                 "Set-ItemProperty",
                 "-Path",
@@ -141,6 +146,7 @@ pub fn install_nat() -> Result<(), ()> {
         }
 
         match Command::new("powershell")
+            .creation_flags(WINDOWS_INVISIBLE_TERMIAL)
             .args([
                 "New-NetNat",
                 "-Name",
@@ -195,6 +201,7 @@ pub fn uninstall_nat() -> Result<(), ()> {
     {
         // Uninstall NAT rule (this isn't really neccessary, but whatever)
         match Command::new("powershell")
+            .creation_flags(WINDOWS_INVISIBLE_TERMIAL)
             .args(["Remove-NetNat", "-Name", "TunnelNat", "-Confirm:$false"])
             .status()
         {

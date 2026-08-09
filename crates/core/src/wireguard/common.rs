@@ -3,6 +3,11 @@ use std::{fs, process::Command};
 use base64::{Engine, engine::general_purpose::STANDARD};
 use x25519_dalek::{PublicKey, StaticSecret};
 
+#[cfg(target_os = "windows")]
+use crate::util::terminal::WINDOWS_INVISIBLE_TERMIAL;
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
 use crate::state::io_manager::{self, wireguard_path};
 
 // Note:
@@ -65,6 +70,7 @@ pub fn add_peer(
     #[cfg(target_os = "windows")]
     {
         command_base = Command::new(r"C:\Program Files\WireGuard\wg.exe");
+        command_base.creation_flags(WINDOWS_INVISIBLE_TERMIAL);
     }
 
     #[cfg(target_os = "linux")]
@@ -131,6 +137,7 @@ pub fn install_service_if_not_already(interface_name: &str) -> Result<(), ()> {
     #[cfg(target_os = "windows")]
     {
         let output = match Command::new("powershell")
+            .creation_flags(WINDOWS_INVISIBLE_TERMIAL)
             .args([
                 "-NoProfile",
                 "-Command",
@@ -184,6 +191,7 @@ pub fn install_service(interface_name: &str) -> Result<(), ()> {
 
     #[cfg(target_os = "windows")]
     let status = Command::new(r"C:\Program Files\WireGuard\wireguard.exe")
+        .creation_flags(WINDOWS_INVISIBLE_TERMIAL)
         .arg("/installtunnelservice")
         .arg(format!("{}", conf_path_str))
         .status();
@@ -216,6 +224,7 @@ pub fn activate_service(service_name: &str) -> Result<(), ()> {
     #[cfg(target_os = "windows")]
     {
         match Command::new("powershell")
+            .creation_flags(WINDOWS_INVISIBLE_TERMIAL)
             .args([
                 "-NoProfile",
                 "-Command",
@@ -259,6 +268,7 @@ pub fn activate_service(service_name: &str) -> Result<(), ()> {
 pub fn get_active_service() -> Option<String> {
     #[cfg(target_os = "windows")]
     let output = match Command::new(r"C:\Program Files\WireGuard\wg.exe")
+        .creation_flags(WINDOWS_INVISIBLE_TERMIAL)
         .arg("show")
         .output()
     {
@@ -309,6 +319,7 @@ pub fn deactivate_running_service() -> Result<(), ()> {
     #[cfg(target_os = "windows")]
     {
         match Command::new("powershell")
+            .creation_flags(WINDOWS_INVISIBLE_TERMIAL)
             .args([
                 "-NoProfile",
                 "-Command",

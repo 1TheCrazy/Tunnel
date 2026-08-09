@@ -2,6 +2,11 @@ use std::{collections::HashMap, process::Command};
 
 use serde::Serialize;
 use tauri::Manager;
+#[cfg(target_os = "windows")]
+use tunnel_core::util::terminal::WINDOWS_INVISIBLE_TERMIAL;
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
 use tunnel_core::{
     structs::client::{ClientNode, ClientServer},
     wireguard::{
@@ -93,6 +98,7 @@ pub fn network_stats() -> Result<Option<NetworkStats>, String> {
 
     #[cfg(target_os = "windows")]
     let command = Command::new(r"C:\Program Files\WireGuard\wg.exe")
+        .creation_flags(WINDOWS_INVISIBLE_TERMIAL)
         .arg("show")
         .output();
     #[cfg(target_os = "linux")]
