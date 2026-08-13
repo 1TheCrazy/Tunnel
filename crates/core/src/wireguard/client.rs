@@ -29,10 +29,15 @@ pub fn create_and_activate_client_conf(
     conf.push_str("DNS = 1.1.1.1");
     conf.push_str("\n[Peer]\n");
     conf.push_str(&format!("PublicKey = {}\n", node_public_key));
-    conf.push_str(&format!("Endpoint = {}\n", endpoint));
+    // When client and node are on the same network and the latest windows update, this kills the pc
+    // You'd have to pass the local address 192.168.x.x , but I'm not doing this
+    conf.push_str(&format!("Endpoint = {}\n", endpoint)); 
     // TODO: sync full-/split-tunnel with config
     // TODO: Add ipv6 support
-    conf.push_str("AllowedIPs = 0.0.0.0/0\n");
+    // On Windows, a literal /0 enables WireGuard's kill-switch firewall rules.
+    // Two /1 routes provide the same IPv4 full-tunnel coverage without that
+    // special routing/firewall path, which also keeps the peer endpoint usable.
+    conf.push_str("AllowedIPs = 0.0.0.0/1, 128.0.0.0/1\n");
     conf.push_str("PersistentKeepalive = 25\n");
 
     match fs::write(path, conf) {

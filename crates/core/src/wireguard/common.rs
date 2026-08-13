@@ -215,6 +215,27 @@ pub fn install_service(interface_name: &str) -> Result<(), ()> {
         return Err(());
     }
 
+    // Disable automatic service start on system reboot (Windows only).
+    #[cfg(target_os = "windows")]
+    {
+        let status = Command::new("powershell")
+            .creation_flags(WINDOWS_INVISIBLE_TERMIAL)
+            .args([
+                "-NoProfile",
+                "-Command",
+                &format!(
+                    "Set-Service -Name 'WireGuardTunnel${}' -StartupType Manual",
+                    interface_name
+                ),
+            ])
+            .status();
+
+        match status {
+            Ok(status) if status.success() => {}
+            _ => return Err(()),
+        }
+    }
+
     Ok(())
 }
 
