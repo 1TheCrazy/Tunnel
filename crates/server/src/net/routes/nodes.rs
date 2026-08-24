@@ -15,7 +15,7 @@ use tunnel_core::{
         http::{
             CreateClientOnNodeRequest, CreateNodeRequest,
             CreateNodeResponse, DiscoverNodeRequest, DiscoverNodeResponse, NodeToServerMessage,
-            ServerToNodeMessage, UpdateNodeRequest,
+            ServerToNodeMessage,
         },
         server::ServerNode,
     },
@@ -28,7 +28,6 @@ pub fn router() -> Router<AppState> {
         .route("/register", post(register))
         .route("/discover", post(discover))
         .route("/websocket", get(websocket))
-        .route("/update", post(update))
 }
 
 async fn list(
@@ -276,46 +275,4 @@ async fn handle_websocket(socket: WebSocket, state: AppState, addr: SocketAddr) 
     drop(sender);
     let _ = writer.await;
     println!("server: node websocket disconnected node_id={}", node_id);
-}
-
-async fn update(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    Json(body): Json<UpdateNodeRequest>,
-) -> impl IntoResponse {
-    println!(
-        "server: request POST /nodes/update from {} node_id={} new_ip={}",
-        addr,
-        body.id,
-        addr.ip().to_string(),
-    );
-
-    let mut server = state.server.write().unwrap();
-
-    if !authorization::is_request_authorized(&server.password, &headers) {
-        println!(
-            "server: request POST /nodes/update from {} -> 401 unauthorized",
-            addr
-        );
-        return (StatusCode::UNAUTHORIZED, "Invalid Credentials").into_response();
-    }
-
-    if let Some(node) = server.nodes.iter_mut().find(|node| node.id == body.id) {
-        node.ip = addr.ip().to_string();
-        node.name = body.name;
-    } else {
-        println!(
-            "server: request POST /nodes/update from {} -> 400 node_id_not_found={}",
-            addr, body.id
-        );
-        return (StatusCode::BAD_REQUEST, "Node id not valid").into_response();
-    }
-
-    println!(
-        "server: request POST /nodes/update from {} -> 200 node_id={}",
-        addr, body.id
-    );
-
-    return (StatusCode::OK, "OK").into_response();
 }
