@@ -127,13 +127,11 @@ pub fn install_nat() -> Result<(), ()> {
         match Command::new("powershell")
             .creation_flags(WINDOWS_INVISIBLE_TERMIAL)
             .args([
-                "Set-ItemProperty",
-                "-Path",
-                "\"HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\"",
-                "-Name",
-                "IPEnableRouter",
-                "-Value",
-                "1",
+                "Set-NetIPInterface",
+                "-AddressFamily",
+                "IPv4",
+                "-Forwarding",
+                "Enabled",
             ])
             .status()
         {
@@ -173,6 +171,18 @@ pub fn uninstall_nat() -> Result<(), ()> {
     {
         let internet_interface = get_internet_interface_name()?;
 
+        match Command::new("sudo")
+            .args(["sysctl", "-w", "net.ipv4.ip_forward=0"])
+            .status()
+        {
+            Ok(exit) => {
+                if !exit.success() {
+                    return Err(());
+                }
+            }
+            Err(_) => return Err(()),
+        };
+
         // Uninstall NAT rule (this isn't really neccessary, but whatever)
         match Command::new("sudo")
             .args([
@@ -199,6 +209,25 @@ pub fn uninstall_nat() -> Result<(), ()> {
 
     #[cfg(target_os = "windows")]
     {
+        match Command::new("powershell")
+            .creation_flags(WINDOWS_INVISIBLE_TERMIAL)
+            .args([
+                "Set-NetIPInterface",
+                "-AddressFamily",
+                "IPv4",
+                "-Forwarding",
+                "Disabled",
+            ])
+            .status()
+        {
+            Ok(exit) => {
+                if !exit.success() {
+                    return Err(());
+                }
+            }
+            Err(_) => return Err(()),
+        }
+
         // Uninstall NAT rule (this isn't really neccessary, but whatever)
         match Command::new("powershell")
             .creation_flags(WINDOWS_INVISIBLE_TERMIAL)

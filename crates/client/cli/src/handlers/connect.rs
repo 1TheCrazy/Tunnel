@@ -1,15 +1,19 @@
-use tunnel_core::wireguard::{
-    client::create_and_activate_client_conf, common::activate_service,
-    util::interface_name_from_node_id,
+use tunnel_core::wireguard::client::{
+    create_and_activate_client_conf, update_and_activate_client_conf,
 };
 
 use crate::{
     http::wrapper::discover_node,
+    structs::state::CliClientSave,
     util::{io_wrapper, state::get_mut_active_server},
     write_line,
 };
 
 pub async fn connect(id: &str) -> Result<(), ()> {
+    // A node can change networks while the client is offline. Always obtain its
+    // current endpoint before either creating or reactivating its tunnel.
+    CliClientSave::refresh().await?;
+
     let mut state = io_wrapper::get_mut_save();
 
     let server = match get_mut_active_server(&mut state) {
@@ -27,20 +31,21 @@ pub async fn connect(id: &str) -> Result<(), ()> {
         return Err(());
     };
 
+    let node = node.clone();
     let discovered = node.discovered;
     drop(state);
 
     if !discovered {
         return connect_fresh(id).await;
     } else {
-        return connect_known(id);
+        return connect_known(id, &node);
     }
 }
 
-fn connect_known(id: &str) -> Result<(), ()> {
-    let service_name = interface_name_from_node_id(id);
+fn connect_known(id: &str, node: &tunnel_core::structs::client::ClientNode) -> Result<(), ()> {
+    let endpoint = format!("{}:{}", node.ip, node.port);
 
-    match activate_service(&service_name) {
+    match update_and_activate_client_conf(id, &node.public_key, &endpoint) {
         Ok(()) => return Ok(()),
         Err(()) => {
             // This could be due to another service running and WireGuard refusing to start this one, or the .conf doesn't exist, or any other reason

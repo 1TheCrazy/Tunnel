@@ -1,17 +1,17 @@
 use std::{collections::HashMap, process::Command};
 
 use serde::Serialize;
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 use tauri::Manager;
 #[cfg(target_os = "windows")]
 use tunnel_core::util::terminal::WINDOWS_INVISIBLE_TERMIAL;
-#[cfg(target_os = "windows")]
-use std::os::windows::process::CommandExt;
 
 use tunnel_core::{
     structs::client::{ClientNode, ClientServer},
     wireguard::{
-        client::create_and_activate_client_conf,
-        common::{activate_service, deactivate_running_service, get_active_service},
+        client::{create_and_activate_client_conf, update_and_activate_client_conf},
+        common::{deactivate_running_service, get_active_service},
         util::interface_name_from_node_id,
     },
 };
@@ -352,31 +352,35 @@ pub fn server_set(name: String) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn connect(id: String) -> Result<(), String> {
+    // The node may have received a new public IP since the last refresh.
+    refresh().await?;
+
     let mut state = get_mut_save();
     let server = get_mut_active_server(&mut state).ok_or_else(|| {
         "There was no selected server. Select a server before connecting to a node that owns it. See '--help' for help".to_owned()
     })?;
 
-    let discovered = server
+    let node = server
         .nodes
         .iter()
         .find(|n| n.id == id)
         .ok_or_else(|| "The selected server didn't contian a node with the given id".to_owned())?
-        .discovered;
+        .clone();
+    let discovered = node.discovered;
 
     drop(state);
 
     if discovered {
-        connect_known(&id)
+        connect_known(&id, &node)
     } else {
         connect_fresh(&id).await
     }
 }
 
-fn connect_known(id: &str) -> Result<(), String> {
-    let service_name = interface_name_from_node_id(id);
-
-    activate_service(&service_name).map_err(|_| "Wasn't able to activate service.".to_owned())
+fn connect_known(id: &str, node: &ClientNode) -> Result<(), String> {
+    let endpoint = format!("{}:{}", node.ip, node.port);
+    update_and_activate_client_conf(id, &node.public_key, &endpoint)
+        .map_err(|_| "Wasn't able to update or activate the WireGuard service.".to_owned())
 }
 
 async fn connect_fresh(id: &str) -> Result<(), String> {
