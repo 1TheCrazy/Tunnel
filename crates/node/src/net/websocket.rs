@@ -101,15 +101,20 @@ impl WebSocketProvider for SharedState {
         );
 
         // Connect websocket
-        let (mut websocket, _response) =
-            connect_async_tls_with_config(
-                request,
-                None, // Default WebSocketConfig
-                false, // Keep Nagle enabled
-                Some(connector),
-            )
-            .await
-            .expect("Wasnt able to connect to websocket");
+        let (mut websocket, _response) = match connect_async_tls_with_config(
+            request,
+            None, // Default WebSocketConfig
+            false, // Keep Nagle enabled
+            Some(connector),
+        )
+        .await
+        {
+            Ok(connection) => connection,
+            Err(error) => {
+                println!("node: websocket connection failed error={error}");
+                return;
+            }
+        };
 
         let (webhook_sender, mut webhook_receiver) = mpsc::channel(16);
         let node_id = self.read().unwrap().self_id.clone();

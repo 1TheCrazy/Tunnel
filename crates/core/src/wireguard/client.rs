@@ -5,7 +5,7 @@ use crate::{
         util::interface_name_from_node_id,
     },
 };
-use std::{fs, net::Ipv4Addr, process::Command};
+use std::{fs, /*net::Ipv4Addr,*/ process::Command};
 
 #[cfg(target_os = "windows")]
 use crate::util::terminal::WINDOWS_INVISIBLE_TERMIAL;

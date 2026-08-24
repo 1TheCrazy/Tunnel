@@ -1,6 +1,8 @@
 mod net;
 mod util;
 
+use std::time::Duration;
+
 use crate::net::{state::SharedState, websocket::WebSocketProvider};
 use tunnel_core::wireguard::{
     common::{activate_service, install_service_if_not_already},
@@ -47,16 +49,24 @@ async fn main() {
         }
     } // Drop Lock
 
-    tokio::select! {
-        _ = state.connect() => {
-            println!("node: websocket connection ended");
-        }
-        result = tokio::signal::ctrl_c() => {
-            match result {
-                Ok(()) => println!("node: shutdown signal received"),
-                Err(error) => println!("node: failed to listen for shutdown signal error={error}"),
+    const RECONNECT_DELAY: Duration = Duration::from_secs(5);
+
+    let shutdown_result = loop {
+        tokio::select! {
+            _ = state.connect() => {
+                println!("node: websocket connection ended; retrying in {} seconds", RECONNECT_DELAY.as_secs());
+                tokio::select! {
+                    _ = tokio::time::sleep(RECONNECT_DELAY) => {}
+                    result = tokio::signal::ctrl_c() => break result,
+                }
             }
+            result = tokio::signal::ctrl_c() => break result,
         }
+    };
+
+    match shutdown_result {
+        Ok(()) => println!("node: shutdown signal received"),
+        Err(error) => println!("node: failed to listen for shutdown signal error={error}"),
     }
 
     match state.cleanup() {
